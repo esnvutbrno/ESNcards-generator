@@ -6,8 +6,9 @@ import os
 import sys
 
 from enum import IntEnum
-from fpdf import FPDF
+from fpdf import FPDF, set_global
 
+set_global("SYSTEM_TTFONTS", os.path.join(os.path.dirname(__file__),'fonts'))
 
 logging.basicConfig(filename='/dev/stdout/',
                     format='[%(asctime)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
@@ -58,6 +59,7 @@ class Config():
     imgpath = ""
     peoplecsv = ""
     spacing = None
+    mode = None
 
     @staticmethod
     def info():
@@ -79,6 +81,7 @@ def parse_args():
     Config.imgpath = args.imgpath
     Config.peoplecsv = args.peoplecsv
     Config.spacing = Spacing(args.mode)
+    Config.mode = args.mode
 
 def load_images():
     try:
@@ -89,6 +92,12 @@ def load_images():
 
 def do(imagelist):
     pdf = FPDF('P', 'mm', 'A4')
+    pdf.add_font("NotoSans", style="", fname="NotoSans-Regular.ttf", uni=True)
+    pdf.add_font("NotoSans", style="B", fname="NotoSans-Bold.ttf", uni=True)
+    pdf.add_font("NotoSans", style="I", fname="NotoSans-Italic.ttf", uni=True)
+    pdf.add_font("NotoSans", style="BI", fname="NotoSans-BoldItalic.ttf", uni=True)
+    pdf.set_font("NotoSans", size=6)
+    
     pdf.add_page()
     
     xInit = Config.spacing.xInit
@@ -101,7 +110,14 @@ def do(imagelist):
     for image in imagelist:
         i += 1
         logger.debug(f"Exporting image ({i}/{len(imagelist)}) {image}")
-        pdf.image(Config.imgpath + image, x, y, w, h)
+
+        if Config.mode != PrintMode.TEXT_ONLY:
+            pdf.image(Config.imgpath + image, x, y, w, h)
+
+            # Write name below the image
+            xText = x + (PhotoSize.w >> 3)
+            yText = y + PhotoSize.h + 2
+            pdf.text(xText, yText, image)
 
         x += xIncrement
         
