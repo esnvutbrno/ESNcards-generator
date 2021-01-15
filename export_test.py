@@ -53,16 +53,7 @@ class Spacing:
 
         self.yIncrement = PhotoSize.h + (PhotoSize.h >> 3) # Photo height + 12.5% for spacing
     
-
-# TODO get rid of singleton
-class Singleton(type):
-    _instances = {}
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
-
-class Config(metaclass=Singleton):
+class Config():
     imgextensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff')
     imgpath = ""
     peoplecsv = ""
