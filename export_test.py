@@ -37,8 +37,8 @@ class TextSize:
 
 class Spacing:
     """The most efficient spacing based on printing mode selected"""
-    xInit = 10
-    yInit = 10
+    xInit = 5
+    yInit = 5
     xIncrement = 0
     yIncrement = 0
 
@@ -49,9 +49,9 @@ class Spacing:
         elif mode == PrintMode.TEXT_ONLY:
             self.xIncrement = A4.w / 2
         else:
-            self.xIncrement = PhotoSize.w + 6 + TextSize.w + 6
+            self.xIncrement = PhotoSize.w + 6 + TextSize.w + 2
 
-        self.yIncrement = PhotoSize.h + (PhotoSize.h >> 3) # Photo height + 12.5% for spacing
+        self.yIncrement = PhotoSize.h + (PhotoSize.h >> 3) # Photo height + 12.5% for spacing + 10mm for name
     
 class Config():
     imgextensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff')
@@ -68,7 +68,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--imgpath', default="/tmp/ESNcard/imgs/", help='folder with images to be processed (default: \'/tmp/ESNcard/imgs/\')')
     parser.add_argument('--peoplecsv', default="/tmp/ESNcard/people.csv", help='CSV file with students and their details (default: \'/tmp/ESNcard/people.csv\')')
-    parser.add_argument('--mode', type=int, default=f"{PrintMode.PHOTO_ONLY}", help=f'Printing mode\n\t{PrintMode.PHOTO_ONLY} - Photo only\n\t{PrintMode.TEXT_ONLY} - Text only\n\t{PrintMode.ALL} - All (default: {PrintMode.ALL})')
+    parser.add_argument('--mode', type=int, default=f"{PrintMode.ALL}", help=f'Printing mode\n\t{PrintMode.PHOTO_ONLY} - Photo only\n\t{PrintMode.TEXT_ONLY} - Text only\n\t{PrintMode.ALL} - All (default: {PrintMode.ALL})')
 
     args, rest = parser.parse_known_args()
     sys.argv = sys.argv[:1] + rest
@@ -94,7 +94,7 @@ def do(imagelist):
     xInit = Config.spacing.xInit
     yInit = Config.spacing.yInit
     xIncrement = Config.spacing.xIncrement
-    yIncrement = Config.spacing.xIncrement
+    yIncrement = Config.spacing.yIncrement
     x,y,w,h = xInit, yInit, PhotoSize.w, PhotoSize.h
     i = 0
 
