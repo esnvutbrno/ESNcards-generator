@@ -103,15 +103,15 @@ def do(imagelist):
         logger.debug(f"Exporting image ({i}/{len(imagelist)}) {image}")
         pdf.image(Config.imgpath + image, x, y, w, h)
 
-        x += Config.spacing.xIncrement
+        x += xIncrement
         
         # check for need to increment row
-        if x > A4.w - xIncrement:
+        if x >= A4.w - xInit - xIncrement:
             x = xInit    
             y += yIncrement
 
         # check if a new page should be added
-        if y > A4.h - yIncrement:
+        if y >= A4.h - yInit - yIncrement:
             logger.debug(f"Height limit reached. Adding a new page.")
             y = yInit
             pdf.add_page()
