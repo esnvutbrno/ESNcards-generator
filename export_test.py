@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/usr/bin/env python3
 
 import argparse
 import logging
@@ -21,25 +21,54 @@ class PrintMode(IntEnum):
     TEXT_ONLY = 2   # Printing only descriptions to transparent foil 
     ALL = 3         # Printing everything with classical layout
 
-class A4:
-    """A4 paper size in mm"""
+class A4Size:
+    """A4 paper size"""
     w = 210
     h = 297
 
 class PhotoSize:
-    """Desired photo size in mm"""
+    """Desired photo size"""
     w = 27
     h = 37
 
 class TextSize:
-    """Expected text block size in mm"""
+    """Expected max text block size"""
     w = 46
     h = 40
 
-class Spacing:
+class CardSpacing:
+    """Space between initial coordinations (0,0) of objects of the card (i.e. photo and text)"""
+    rowDelta = 8        # space between rows of text
+    textDelta = 33      # space between photo and text block
+    dateDelta = 31      # space between text column and date column
+    dayDelta = 5        # space between parts of the date
+
+
+class TextDeltas:
+    """Distance from initial photo position (0,0)"""
+    xName = CardSpacing.textDelta
+    yName = CardSpacing.rowDelta
+
+    xNationality = CardSpacing.textDelta
+    yNationality = yName + CardSpacing.rowDelta
+
+    xBirthday = CardSpacing.textDelta + CardSpacing.dateDelta
+    yBirthday = yNationality
+
+    xFaculty = CardSpacing.textDelta
+    yFaculty = yBirthday + CardSpacing.rowDelta
+
+    xSection = CardSpacing.textDelta
+    ySection = yFaculty + CardSpacing.rowDelta
+
+    xValidity = CardSpacing.textDelta + CardSpacing.dateDelta
+    yValidity = ySection
+    
+
+class ContentSpacing:
     """The most efficient spacing based on printing mode selected"""
-    xInit = 5
-    yInit = 5
+    xBorder = 5
+    yBorder = 5
     xIncrement = 0
     yIncrement = 0
 
@@ -48,11 +77,11 @@ class Spacing:
             self.xIncrement = PhotoSize.w + (PhotoSize.w >> 3) # Photo width + 12.5% for spacing
             
         elif mode == PrintMode.TEXT_ONLY:
-            self.xIncrement = A4.w / 2
+            self.xIncrement = TextSize.w + 2 # + print spacing
         else:
-            self.xIncrement = PhotoSize.w + 6 + TextSize.w + 2
+            self.xIncrement = PhotoSize.w + 6 + TextSize.w + 2 # Photo width + 6mm space + Text width + print spacing
 
-        self.yIncrement = PhotoSize.h + (PhotoSize.h >> 3) # Photo height + 12.5% for spacing + 10mm for name
+        self.yIncrement = PhotoSize.h + (PhotoSize.h >> 3) # Photo height + 12.5% for spacing
     
 class Config():
     imgextensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff')
@@ -63,14 +92,14 @@ class Config():
 
     @staticmethod
     def info():
-        return f"imgpath={Config.imgpath}, peoplecsv={Config.peoplecsv}, imgextensions={Config.imgextensions}, spacing:{Config.spacing.xInit, Config.spacing.yInit, Config.spacing.xIncrement, Config.spacing.yIncrement}"
+        return f"imgpath={Config.imgpath}, peoplecsv={Config.peoplecsv}, imgextensions={Config.imgextensions}, spacing:{Config.spacing.xBorder, Config.spacing.yBorder, Config.spacing.xIncrement, Config.spacing.yIncrement}"
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--imgpath', default="/tmp/ESNcard/imgs/", help='folder with images to be processed (default: \'/tmp/ESNcard/imgs/\')')
     parser.add_argument('--peoplecsv', default="/tmp/ESNcard/people.csv", help='CSV file with students and their details (default: \'/tmp/ESNcard/people.csv\')')
-    parser.add_argument('--mode', type=int, default=f"{PrintMode.ALL}", help=f'Printing mode\n\t{PrintMode.PHOTO_ONLY} - Photo only\n\t{PrintMode.TEXT_ONLY} - Text only\n\t{PrintMode.ALL} - All (default: {PrintMode.ALL})')
+    parser.add_argument('--mode', type=int, default=f"{PrintMode.TEXT_ONLY}", help=f'Printing mode\n\t{PrintMode.PHOTO_ONLY} - Photo only,\t{PrintMode.TEXT_ONLY} - Text only,\t{PrintMode.ALL} - All (default: {PrintMode.ALL})')
 
     args, rest = parser.parse_known_args()
     sys.argv = sys.argv[:1] + rest
@@ -80,7 +109,7 @@ def parse_args():
 
     Config.imgpath = args.imgpath
     Config.peoplecsv = args.peoplecsv
-    Config.spacing = Spacing(args.mode)
+    Config.spacing = ContentSpacing(args.mode)
     Config.mode = args.mode
 
 def load_images():
@@ -89,6 +118,19 @@ def load_images():
     except:
         logger.error(f"Getting images from directory '{Config.imgpath}' failed.")
         sys.exit(1)
+
+def print_person_info(pdf, x, y):
+    # By default, TextDeltas count with photo width so substract it in case we are not printing photos
+    if Config.mode == PrintMode.TEXT_ONLY:
+        x -= PhotoSize.w
+
+    pdf.text(x + TextDeltas.xName, y + TextDeltas.yName, "Name Surname")
+    pdf.text(x + TextDeltas.xNationality, y + TextDeltas.yNationality, "Nationality")
+    pdf.text(x + TextDeltas.xBirthday, y + TextDeltas.yBirthday, "DD MM YY") # TODO use CardSpacing.dayDelta
+    pdf.text(x + TextDeltas.xFaculty, y + TextDeltas.yFaculty, "Faculty")
+    pdf.text(x + TextDeltas.xSection, y + TextDeltas.ySection, "Section")
+    pdf.text(x + TextDeltas.xValidity, y + TextDeltas.yValidity, "DD MM YY") ## TODO use CardSpacing.dayDelta
+
 
 def do(imagelist):
     pdf = FPDF('P', 'mm', 'A4')
@@ -100,36 +142,39 @@ def do(imagelist):
     
     pdf.add_page()
     
-    xInit = Config.spacing.xInit
-    yInit = Config.spacing.yInit
+    xBorder = Config.spacing.xBorder
+    yBorder = Config.spacing.yBorder
     xIncrement = Config.spacing.xIncrement
     yIncrement = Config.spacing.yIncrement
-    x,y,w,h = xInit, yInit, PhotoSize.w, PhotoSize.h
+    x,y,w,h = xBorder, yBorder, PhotoSize.w, PhotoSize.h
     i = 0
 
-    for image in imagelist:
+    for imgpath in imagelist:
         i += 1
-        logger.debug(f"Exporting image ({i}/{len(imagelist)}) {image}")
+        logger.debug(f"Exporting image ({i}/{len(imagelist)}) {imgpath}")
 
         if Config.mode != PrintMode.TEXT_ONLY:
-            pdf.image(Config.imgpath + image, x, y, w, h)
+            pdf.image(Config.imgpath + imgpath, x, y, w, h)
 
             # Write name below the image
             xText = x + (PhotoSize.w >> 3)
             yText = y + PhotoSize.h + 2
-            pdf.text(xText, yText, image)
+            pdf.text(xText, yText, imgpath)
+
+        if Config.mode != PrintMode.PHOTO_ONLY:
+            print_person_info(pdf, x, y)
 
         x += xIncrement
         
         # check for need to increment row
-        if x >= A4.w - xInit - xIncrement:
-            x = xInit    
+        if x >= A4Size.w - xBorder - xIncrement:
+            x = xBorder    
             y += yIncrement
 
         # check if a new page should be added
-        if y >= A4.h - yInit - yIncrement:
+        if y >= A4Size.h - yBorder - yIncrement:
             logger.debug(f"Height limit reached. Adding a new page.")
-            y = yInit
+            y = yBorder
             pdf.add_page()
 
     pdf.output("/tmp/ESNcard/images.pdf", "F")
