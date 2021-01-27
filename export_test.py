@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 import argparse
+import csv
 import logging
 import os
+import re
 import sys
 
 from enum import IntEnum
@@ -83,23 +85,32 @@ class ContentSpacing:
 
         self.yIncrement = PhotoSize.h + (PhotoSize.h >> 3) # Photo height + 12.5% for spacing
     
-class Config():
+class Config:
     imgextensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff')
     imgpath = ""
     peoplecsv = ""
+    output = ""
     spacing = None
     mode = None
 
     @staticmethod
     def info():
-        return f"imgpath={Config.imgpath}, peoplecsv={Config.peoplecsv}, imgextensions={Config.imgextensions}, spacing:{Config.spacing.xBorder, Config.spacing.yBorder, Config.spacing.xIncrement, Config.spacing.yIncrement}"
+        return f"imgpath={Config.imgpath}, peoplecsv={Config.peoplecsv}, output={Config.output}, imgextensions={Config.imgextensions}, spacing:{Config.spacing.xBorder, Config.spacing.yBorder, Config.spacing.xIncrement, Config.spacing.yIncrement}"
 
+class PersonInfo:
+    name = ""
+    nationality = ""
+    birthday = ""
+    faculty = "VUT Brno"
+    section = "ESN VUT Brno"
+    validity = ""
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--imgpath', default="/tmp/ESNcard/imgs/", help='folder with images to be processed (default: \'/tmp/ESNcard/imgs/\')')
     parser.add_argument('--peoplecsv', default="/tmp/ESNcard/people.csv", help='CSV file with students and their details (default: \'/tmp/ESNcard/people.csv\')')
-    parser.add_argument('--mode', type=int, default=f"{PrintMode.TEXT_ONLY}", help=f'Printing mode\n\t{PrintMode.PHOTO_ONLY} - Photo only,\t{PrintMode.TEXT_ONLY} - Text only,\t{PrintMode.ALL} - All (default: {PrintMode.ALL})')
+    parser.add_argument('--output', default="/tmp/ESNcard/images.pdf", help='Output file (default: \'/tmp/ESNcard/images.pdf\')')
+    parser.add_argument('--mode', type=int, default=f"{PrintMode.ALL}", help=f'Printing mode\n\t{PrintMode.PHOTO_ONLY} - Photo only,\t{PrintMode.TEXT_ONLY} - Text only,\t{PrintMode.ALL} - All (default: {PrintMode.ALL})')
 
     args, rest = parser.parse_known_args()
     sys.argv = sys.argv[:1] + rest
@@ -109,6 +120,7 @@ def parse_args():
 
     Config.imgpath = args.imgpath
     Config.peoplecsv = args.peoplecsv
+    Config.output = args.output
     Config.spacing = ContentSpacing(args.mode)
     Config.mode = args.mode
 
@@ -119,20 +131,22 @@ def load_images():
         logger.error(f"Getting images from directory '{Config.imgpath}' failed.")
         sys.exit(1)
 
-def print_person_info(pdf, x, y):
+def print_person_info(pdf, x, y, pi):
     # By default, TextDeltas count with photo width so substract it in case we are not printing photos
     if Config.mode == PrintMode.TEXT_ONLY:
         x -= PhotoSize.w
 
-    pdf.text(x + TextDeltas.xName, y + TextDeltas.yName, "Name Surname")
-    pdf.text(x + TextDeltas.xNationality, y + TextDeltas.yNationality, "Nationality")
-    pdf.text(x + TextDeltas.xBirthday, y + TextDeltas.yBirthday, "DD MM YY") # TODO use CardSpacing.dayDelta
-    pdf.text(x + TextDeltas.xFaculty, y + TextDeltas.yFaculty, "Faculty")
-    pdf.text(x + TextDeltas.xSection, y + TextDeltas.ySection, "Section")
-    pdf.text(x + TextDeltas.xValidity, y + TextDeltas.yValidity, "DD MM YY") ## TODO use CardSpacing.dayDelta
+    pdf.text(x + TextDeltas.xName, y + TextDeltas.yName, pi.name)
+    pdf.text(x + TextDeltas.xNationality, y + TextDeltas.yNationality, pi.nationality)
+    pdf.text(x + TextDeltas.xBirthday, y + TextDeltas.yBirthday, pi.birthday) # TODO use CardSpacing.dayDelta
+    pdf.text(x + TextDeltas.xFaculty, y + TextDeltas.yFaculty, pi.faculty)
+    pdf.text(x + TextDeltas.xSection, y + TextDeltas.ySection, pi.section)
+    pdf.text(x + TextDeltas.xValidity, y + TextDeltas.yValidity, pi.validity) ## TODO use CardSpacing.dayDelta
 
 
-def do(imagelist):
+def do():
+    # TODO try-catch
+    
     pdf = FPDF('P', 'mm', 'A4')
     pdf.add_font("NotoSans", style="", fname="NotoSans-Regular.ttf", uni=True)
     pdf.add_font("NotoSans", style="B", fname="NotoSans-Bold.ttf", uni=True)
@@ -149,43 +163,59 @@ def do(imagelist):
     x,y,w,h = xBorder, yBorder, PhotoSize.w, PhotoSize.h
     i = 0
 
-    for imgpath in imagelist:
-        i += 1
-        logger.debug(f"Exporting image ({i}/{len(imagelist)}) {imgpath}")
+    # For debug message only.
+    with open(Config.peoplecsv) as f:
+        rows = sum(1 for line in f)-1
 
-        if Config.mode != PrintMode.TEXT_ONLY:
-            pdf.image(Config.imgpath + imgpath, x, y, w, h)
+    with open(Config.peoplecsv, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            i += 1
 
-            # Write name below the image
-            xText = x + (PhotoSize.w >> 3)
-            yText = y + PhotoSize.h + 2
-            pdf.text(xText, yText, imgpath)
+            pi = PersonInfo()
+            pi.name = row["name"]
+            pi.nationality = row["country"]
+            pi.birthday = row["D0"] + row["D1"] + " " + row["M0"] + row["M1"] + " " + row["Y0"] + row["Y1"]
+            pi.validity = row["TD0"] + row["TD1"] + " " + row["TM0"] + row["TM1"] + " " + str(int(row["TY0"] + row["TY1"]) + 1)
 
-        if Config.mode != PrintMode.PHOTO_ONLY:
-            print_person_info(pdf, x, y)
+            logger.debug(f"Exporting ({i}/{rows}) {pi.name}")
 
-        x += xIncrement
-        
-        # check for need to increment row
-        if x >= A4Size.w - xBorder - xIncrement:
-            x = xBorder    
-            y += yIncrement
+            if Config.mode != PrintMode.TEXT_ONLY:
+                foundImg = [f for f in os.listdir(Config.imgpath) if re.match(rf"{pi.name}*", f)][0] # TODO handle more files matching pattern - let user to choose
+                logger.debug(f"Matched photo: {foundImg}")
 
-        # check if a new page should be added
-        if y >= A4Size.h - yBorder - yIncrement:
-            logger.debug(f"Height limit reached. Adding a new page.")
-            y = yBorder
-            pdf.add_page()
+                pdf.image(foundImg, x, y, w, h)
 
-    pdf.output("/tmp/ESNcard/images.pdf", "F")
+                # Write name below the image
+                xText = x + (PhotoSize.w >> 3)
+                yText = y + PhotoSize.h + 2
+                pdf.text(xText, yText, pi.name)
+
+            if Config.mode != PrintMode.PHOTO_ONLY:
+                print_person_info(pdf, x, y, pi)
+
+            x += xIncrement
+            
+            # check for need to increment row
+            if x >= A4Size.w - xBorder - xIncrement:
+                x = xBorder    
+                y += yIncrement
+
+            # check if a new page should be added
+            if y >= A4Size.h - yBorder - yIncrement:
+                logger.debug(f"Height limit reached. Adding a new page.")
+                y = yBorder
+                pdf.add_page()
+
+    pdf.output(Config.output, "F")
 
 def main():
     parse_args()
     logger.debug(Config.info())
 
-    imagelist = load_images()
+    #imagelist = load_images()
 
-    do(imagelist)
+    do()
 
 if __name__ == "__main__":
     main()
