@@ -7,6 +7,7 @@ import os
 import re
 import sys
 
+from datetime import date
 from enum import IntEnum
 from fpdf import FPDF, set_global
 
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 class PrintMode(IntEnum):
     PHOTO_ONLY = 1  # Printing only images to normal paper
-    TEXT_ONLY = 2   # Printing only descriptions to transparent foil 
+    TEXT_ONLY = 2   # Printing only descriptions to transparent foil
     ALL = 3         # Printing everything with classical layout
 
 class A4Size:
@@ -36,14 +37,14 @@ class PhotoSize:
 class TextSize:
     """Expected max text block size"""
     w = 46
-    h = 40
+    h = 25
 
 class CardSpacing:
     """Space between initial coordinations (0,0) of objects of the card (i.e. photo and text)"""
-    rowDelta = 8        # space between rows of text
+    rowDelta = 7.7      # space between rows of text
     textDelta = 33      # space between photo and text block
     dateDelta = 33      # space between text column and date column
-    dayDelta = 5        # space between parts of the date
+    dayDelta = 4.5      # space between parts of the date
 
 
 class TextDeltas:
@@ -65,7 +66,7 @@ class TextDeltas:
 
     xValidity = CardSpacing.textDelta + CardSpacing.dateDelta
     yValidity = ySection
-    
+
 
 class ContentSpacing:
     """The most efficient spacing based on printing mode selected"""
@@ -77,14 +78,15 @@ class ContentSpacing:
     def __init__(self, mode):
         if mode == PrintMode.PHOTO_ONLY:
             self.xIncrement = PhotoSize.w + (PhotoSize.w >> 3) # Photo width + 12.5% for spacing
-            
+            self.yIncrement = PhotoSize.h + (PhotoSize.h >> 3) # Photo height + 12.5% for spacing
+
         elif mode == PrintMode.TEXT_ONLY:
-            self.xIncrement = TextSize.w + 2 # + print spacing
+            self.xIncrement = TextSize.w + 2 # Text width + print spacing
+            self.yIncrement = TextSize.h + 4 # Text height + print spacing
         else:
             self.xIncrement = PhotoSize.w + 6 + TextSize.w + 2 # Photo width + 6mm space + Text width + print spacing
+            self.yIncrement = PhotoSize.h + (PhotoSize.h >> 3) # Photo height + 12.5% for spacing
 
-        self.yIncrement = PhotoSize.h + (PhotoSize.h >> 3) # Photo height + 12.5% for spacing
-    
 class Config:
     imgextensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff')
     imgpath = ""
@@ -100,10 +102,10 @@ class Config:
 class PersonInfo:
     name = ""
     nationality = ""
-    birthday = ""
+    birthday = None
     faculty = "VUT Brno"
     section = "ESN VUT Brno"
-    validity = ""
+    validity = None
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -114,11 +116,11 @@ def parse_args():
 
     args, rest = parser.parse_known_args()
     sys.argv = sys.argv[:1] + rest
-    
+
     if args.mode < 1 or args.mode > 3:
         raise ValueError("Invalid mode specified.")
 
-    Config.imgpath = args.imgpath
+    Config.imgpath = args.imgpath + "/"
     Config.peoplecsv = args.peoplecsv
     Config.output = args.output
     Config.spacing = ContentSpacing(args.mode)
@@ -132,30 +134,48 @@ def load_images():
         sys.exit(1)
 
 def print_person_info(pdf, x, y, pi):
-    # By default, TextDeltas count with photo width so substract it in case we are not printing photos
+    # By default, TextDeltas count with photo width so substract it to get correct init position for text in case we are not printing photos
     if Config.mode == PrintMode.TEXT_ONLY:
         x -= PhotoSize.w
 
-    pdf.text(x + TextDeltas.xName, y + TextDeltas.yName, pi.name)
-    pdf.text(x + TextDeltas.xNationality, y + TextDeltas.yNationality, pi.nationality)
-    pdf.text(x + TextDeltas.xBirthday, y + TextDeltas.yBirthday, pi.birthday) # TODO use CardSpacing.dayDelta
-    pdf.text(x + TextDeltas.xFaculty, y + TextDeltas.yFaculty, pi.faculty)
-    pdf.text(x + TextDeltas.xSection, y + TextDeltas.ySection, pi.section)
-    pdf.text(x + TextDeltas.xValidity, y + TextDeltas.yValidity, pi.validity) ## TODO use CardSpacing.dayDelta
+    pdf.text(x + TextDeltas.xName,          y + TextDeltas.yName, pi.name)
+    pdf.text(x + TextDeltas.xNationality,   y + TextDeltas.yNationality, pi.nationality)
+    pdf.text(x + TextDeltas.xFaculty,       y + TextDeltas.yFaculty, pi.faculty)
+    pdf.text(x + TextDeltas.xSection,       y + TextDeltas.ySection, pi.section)
+
+    pdf.text(x + TextDeltas.xBirthday,
+             y + TextDeltas.yBirthday,
+             pi.birthday.strftime("%d")) # day
+    pdf.text(x + TextDeltas.xBirthday + CardSpacing.dayDelta,
+             y + TextDeltas.yBirthday,
+             pi.birthday.strftime("%m")) # month
+    pdf.text(x + TextDeltas.xBirthday + CardSpacing.dayDelta + CardSpacing.dayDelta,
+             y + TextDeltas.yBirthday,
+             pi.birthday.strftime("%y")) # year
+
+    pdf.text(x + TextDeltas.xValidity,
+             y + TextDeltas.yValidity,
+             pi.validity.strftime("%d")) # day
+    pdf.text(x + TextDeltas.xValidity + CardSpacing.dayDelta,
+             y + TextDeltas.yValidity,
+             pi.validity.strftime("%m")) # month
+    pdf.text(x + TextDeltas.xValidity + CardSpacing.dayDelta + CardSpacing.dayDelta,
+             y + TextDeltas.yValidity,
+             pi.validity.strftime("%y")) # year
 
 
 def do():
     # TODO try-catch
-    
+
     pdf = FPDF('P', 'mm', 'A4')
     pdf.add_font("NotoSans", style="", fname="NotoSans-Regular.ttf", uni=True)
     pdf.add_font("NotoSans", style="B", fname="NotoSans-Bold.ttf", uni=True)
     pdf.add_font("NotoSans", style="I", fname="NotoSans-Italic.ttf", uni=True)
     pdf.add_font("NotoSans", style="BI", fname="NotoSans-BoldItalic.ttf", uni=True)
     pdf.set_font("NotoSans", size=8)
-    
+
     pdf.add_page()
-    
+
     xBorder = Config.spacing.xBorder
     yBorder = Config.spacing.yBorder
     xIncrement = Config.spacing.xIncrement
@@ -175,30 +195,32 @@ def do():
             pi = PersonInfo()
             pi.name = row["name"]
             pi.nationality = row["country"]
-            pi.birthday = row["D0"] + row["D1"] + " " + row["M0"] + row["M1"] + " " + row["Y0"] + row["Y1"]
-            pi.validity = row["TD0"] + row["TD1"] + " " + row["TM0"] + row["TM1"] + " " + str(int(row["TY0"] + row["TY1"]) + 1)
+            pi.birthday = date(int("20" + row["Y0"] + row["Y1"]), int(row["M0"] + row["M1"]), int(row["D0"] + row["D1"]))
+            pi.validity = date(int("20" + row["TY0"] + row["TY1"]) + 1, int(row["TM0"] + row["TM1"]), int(row["TD0"] + row["TD1"])) # FIXME fix the dirty year hack
 
             logger.debug(f"Exporting ({i}/{rows}) {pi.name}")
 
             if Config.mode != PrintMode.TEXT_ONLY:
-                foundImg = [f for f in os.listdir(Config.imgpath) if re.match(rf"{pi.name}*", f)][0] # TODO handle more files matching pattern - let user to choose
-                logger.debug(f"Matched photo: {foundImg}")
+                foundImgs = [f for f in os.listdir(Config.imgpath) if re.match(rf"{pi.name}*", f) and any(f.endswith(ext) for ext in Config.imgextensions)]
+                logger.debug(f"Matched photos: {foundImgs}")
 
-                pdf.image(Config.imgpath + foundImg, x, y, w, h)
+                pdf.image(Config.imgpath + foundImgs[0], x, y, w, h)
 
                 # Write name below the image
-                xText = x + (PhotoSize.w >> 3)
+                pdf.set_font_size(6)
+                xText = x
                 yText = y + PhotoSize.h + 2
                 pdf.text(xText, yText, pi.name)
 
             if Config.mode != PrintMode.PHOTO_ONLY:
+                pdf.set_font_size(8)
                 print_person_info(pdf, x, y, pi)
 
             x += xIncrement
-            
+
             # check for need to increment row
             if x >= A4Size.w - xBorder - xIncrement:
-                x = xBorder    
+                x = xBorder
                 y += yIncrement
 
             # check if a new page should be added
