@@ -42,7 +42,7 @@ class CardSpacing:
     """Space between initial coordinations (0,0) of objects of the card (i.e. photo and text)"""
     rowDelta = 8        # space between rows of text
     textDelta = 33      # space between photo and text block
-    dateDelta = 31      # space between text column and date column
+    dateDelta = 33      # space between text column and date column
     dayDelta = 5        # space between parts of the date
 
 
@@ -152,7 +152,7 @@ def do():
     pdf.add_font("NotoSans", style="B", fname="NotoSans-Bold.ttf", uni=True)
     pdf.add_font("NotoSans", style="I", fname="NotoSans-Italic.ttf", uni=True)
     pdf.add_font("NotoSans", style="BI", fname="NotoSans-BoldItalic.ttf", uni=True)
-    pdf.set_font("NotoSans", size=6)
+    pdf.set_font("NotoSans", size=8)
     
     pdf.add_page()
     
@@ -184,7 +184,7 @@ def do():
                 foundImg = [f for f in os.listdir(Config.imgpath) if re.match(rf"{pi.name}*", f)][0] # TODO handle more files matching pattern - let user to choose
                 logger.debug(f"Matched photo: {foundImg}")
 
-                pdf.image(foundImg, x, y, w, h)
+                pdf.image(Config.imgpath + foundImg, x, y, w, h)
 
                 # Write name below the image
                 xText = x + (PhotoSize.w >> 3)
