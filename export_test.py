@@ -196,7 +196,7 @@ def do():
             pi.name = row["name"]
             pi.nationality = row["country"]
             pi.birthday = date(int("20" + row["Y0"] + row["Y1"]), int(row["M0"] + row["M1"]), int(row["D0"] + row["D1"]))
-            pi.validity = date(int("20" + row["TY0"] + row["TY1"]) + 1, int(row["TM0"] + row["TM1"]), int(row["TD0"] + row["TD1"])) # FIXME fix the dirty year hack
+            pi.validity = date(int("20" + row["TY0"] + row["TY1"]), int(row["TM0"] + row["TM1"]), int(row["TD0"] + row["TD1"])) # FIXME fix the dirty year hack
 
             logger.debug(f"Exporting ({i}/{rows}) {pi.name}")
 
