@@ -46,8 +46,8 @@ class TextSize:
 class CardSpacing:
     """Space between initial coordinations (0,0) of objects of the card (i.e. photo and text)"""
     rowDelta = 6.7      # space between rows of text
-    textDelta = 33      # space between photo and text block
-    dateDelta = 32      # space between text column and date column
+    textDelta = 30      # space between photo and text block
+    dateDelta = 35      # space between text column and date column
     dayDelta = 5.5      # space between parts of the date
 
 class TextDeltas:
@@ -82,17 +82,25 @@ class ContentSpacing:
     yIncrement = 0
 
     def __init__(self, mode, order):
-        if mode == PrintMode.PHOTO_ONLY:
-            self.xIncrement = PhotoSize.w + (PhotoSize.w >> 3) # Photo width + 12.5% for spacing
-            self.yIncrement = PhotoSize.h + (PhotoSize.h >> 3) # Photo height + 12.5% for spacing
-
-        elif mode == PrintMode.TEXT_ONLY:
-            self.xIncrement = TextSize.w + 2 # Text width + print spacing
-            self.yIncrement = TextSize.h + 4 # Text height + print spacing
+        # Y increment
+        if mode == PrintMode.TEXT_ONLY:
+            self.yIncrement = TextSize.h # Text height
         else:
-            self.xIncrement = PhotoSize.w + 6 + TextSize.w + 2 # Photo width + 6mm space + Text width + print spacing
-            self.yIncrement = PhotoSize.h + (PhotoSize.h >> 3) # Photo height + 12.5% for spacing
+            self.yIncrement = PhotoSize.h # Photo height
 
+        self.yIncrement += 4 # row spacing
+
+        # X increment
+        if mode == PrintMode.PHOTO_ONLY:
+            self.xIncrement = PhotoSize.w # Photo width
+        elif mode == PrintMode.TEXT_ONLY:
+            self.xIncrement = TextSize.w # Text width
+        else:
+            self.xIncrement = PhotoSize.w + 6 + TextSize.w # Photo width + 6mm space + Text width
+
+        self.xIncrement += 2 # column spacing
+
+        # Set generator direction
         if order == PrintOrder.REVERSED:
             self.xIncrement *= -1
             self.yIncrement *= -1
@@ -189,6 +197,16 @@ def print_person_info(pdf, x, y, pi):
              y + TextDeltas.yValidity,
              pi.validity.strftime("%y")) # year
 
+def print_photo(pdf, x, y, img, name):
+    pdf.image(img, x, y, PhotoSize.w, PhotoSize.h)
+
+    # Write name below the image
+    xText = x
+    yText = y + PhotoSize.h + 2 # photo height + spacing
+
+    pdf.set_font_size(6)
+    pdf.text(xText, yText, name)
+
 def page_setup(pdf):
     pdf.add_font("NotoSans", style="", fname="NotoSans-Regular.ttf", uni=True)
     pdf.add_font("NotoSans", style="B", fname="NotoSans-Bold.ttf", uni=True)
@@ -241,14 +259,7 @@ def do():
                 foundImgs = [f for f in os.listdir(Config.imgpath) if re.match(rf"{pi.name}.*", f) and any(f.endswith(ext) for ext in Config.imgextensions)]
                 logger.debug(f"Matched photos: {foundImgs}")
 
-                pdf.image(Config.imgpath + foundImgs[0], x, y, PhotoSize.w, PhotoSize.h)
-
-                # Write name below the image
-                xText = x
-                yText = y + PhotoSize.h + 2 # photo height + spacing
-
-                pdf.set_font_size(6)
-                pdf.text(xText, yText, pi.name)
+                print_photo(pdf, x, y, Config.imgpath + foundImgs[0], pi.name)
 
             if Config.mode != PrintMode.PHOTO_ONLY:
                 xText, yText = x, y
