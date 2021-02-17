@@ -7,6 +7,7 @@ import logging
 import os
 import re
 import sys
+import tempfile
 
 from datetime import date
 
@@ -131,12 +132,23 @@ def do():
                 foundImgs = [f for f in os.listdir(Config.imgpath) if re.match(rf".*{pi.name}.*", f) and any(f.endswith(ext) for ext in Config.imgextensions)]
                 logger.debug(f"Matched photos: {foundImgs}") # TODO allow user to choose one
 
-                if len(foundImgs) == 0:
+                if not foundImgs:
                     logger.error(f"!!! Could not find image for '{pi.name}'. Skipping...")
                     continue
 
+                # TODO equalize histogram
+
+                imgpath = Config.imgpath + foundImgs[0]
+
+                if Config.facedetect == True:
+                    vis = FaceDetector.run(imgpath, "haarcascade_frontalface_default.xml")
+                    tmpfile = tempfile._get_default_tempdir() + "/" + next(tempfile._get_candidate_names()) + ".jpg"
+                    cv2.imwrite(tmpfile, vis)
+                    imgpath = tmpfile
+                    # TODO if no faces found use original photo + debug log
+
                 pp.set_coordintates(x, y)
-                pp.print_photo(Config.imgpath + foundImgs[0], pi.name)
+                pp.print_photo(imgpath, pi.name)
 
             if Config.mode != PrintMode.PHOTO_ONLY:
                 xText, yText = x, y
@@ -161,10 +173,6 @@ def do():
                 logger.debug(f"Height limit reached. Adding a new page.")
                 y = yInit
                 pp.add_page()
-
-            if Config.facedetect == True:
-                FaceDetector.run(Config.imgpath + foundImgs[0], "haarcascade_frontalface_default.xml")
-                # TODO if no faces found use original photo + debug log
 
     pp.output()
     cv2.destroyAllWindows()
