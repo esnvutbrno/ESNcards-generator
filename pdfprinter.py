@@ -5,7 +5,6 @@ from common import PhotoSize, TextDeltas, CardSpacing
 
 set_global("SYSTEM_TTFONTS", os.path.join(os.path.dirname(__file__),'fonts'))
 
-
 class PDFPrinter:
     xCurrent = 0
     yCurrent = 0

@@ -2,6 +2,7 @@
 
 import argparse
 import csv
+import cv2
 import logging
 import os
 import re
@@ -9,8 +10,10 @@ import sys
 
 from datetime import date
 
-from pdfprinter import PDFPrinter
 from common import PrintMode, PrintOrder, CardSpacing, ContentSpacing
+from facedetector import FaceDetector
+from pdfprinter import PDFPrinter
+from tools import str2bool
 
 logging.basicConfig(filename='/dev/stdout/',
                     format='[%(asctime)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
@@ -26,10 +29,11 @@ class Config:
     spacing = None
     mode = PrintMode.ALL
     order = PrintOrder.NORMAL
+    facedetect = False
 
     @staticmethod
     def info():
-        return f"imgpath={Config.imgpath}, peoplecsv={Config.peoplecsv}, output={Config.output}, imgextensions={Config.imgextensions}, mode: {Config.mode}, order: {Config.order}, spacing:{Config.spacing.xBorder, Config.spacing.yBorder, Config.spacing.xIncrement, Config.spacing.yIncrement}"
+        return f"imgpath={Config.imgpath}, peoplecsv={Config.peoplecsv}, output={Config.output}, facedetect={Config.facedetect}, imgextensions={Config.imgextensions}, mode: {Config.mode}, order: {Config.order}, spacing:{Config.spacing.xBorder, Config.spacing.yBorder, Config.spacing.xIncrement, Config.spacing.yIncrement}"
 
 class PersonInfo:
     name = ""
@@ -53,6 +57,7 @@ def parse_args():
     parser.add_argument('--output', help=f'Output file (default: \'{Config.output}\')')
     parser.add_argument('--mode', type=int, help=f'Printing mode\n\t{PrintMode.PHOTO_ONLY} - Photo only,\t{PrintMode.TEXT_ONLY} - Text only,\t{PrintMode.ALL} - All (default: {Config.mode})')
     parser.add_argument('--order', type=int, help=f'Printing order\n\t{PrintOrder.NORMAL} - TOP -> BOTTOM,\t{PrintOrder.REVERSED} - BOTTOM -> TOP (default: {Config.order})')
+    parser.add_argument('--facedetect', type=str2bool, help=f'Recognize faces and crop photos. True/False (default: {Config.facedetect})')
 
     args, rest = parser.parse_known_args()
     sys.argv = sys.argv[:1] + rest
@@ -74,6 +79,9 @@ def parse_args():
 
     if args.order is not None:
         Config.order = args.order
+
+    if args.facedetect is not None:
+        Config.facedetect = args.facedetect
 
     Config.spacing = ContentSpacing(Config.mode, Config.order)
 
@@ -120,8 +128,12 @@ def do():
             logger.debug(f"Exporting ({i}/{rows}) {pi.name}")
 
             if Config.mode != PrintMode.TEXT_ONLY:
-                foundImgs = [f for f in os.listdir(Config.imgpath) if re.match(rf"{pi.name}.*", f) and any(f.endswith(ext) for ext in Config.imgextensions)]
+                foundImgs = [f for f in os.listdir(Config.imgpath) if re.match(rf".*{pi.name}.*", f) and any(f.endswith(ext) for ext in Config.imgextensions)]
                 logger.debug(f"Matched photos: {foundImgs}") # TODO allow user to choose one
+
+                if len(foundImgs) == 0:
+                    logger.error(f"!!! Could not find image for '{pi.name}'. Skipping...")
+                    continue
 
                 pp.set_coordintates(x, y)
                 pp.print_photo(Config.imgpath + foundImgs[0], pi.name)
@@ -150,7 +162,12 @@ def do():
                 y = yInit
                 pp.add_page()
 
+            if Config.facedetect == True:
+                FaceDetector.run(Config.imgpath + foundImgs[0], "haarcascade_frontalface_default.xml")
+                # TODO if no faces found use original photo + debug log
+
     pp.output()
+    cv2.destroyAllWindows()
 
 def main():
     parse_args()
