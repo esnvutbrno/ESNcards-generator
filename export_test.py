@@ -8,107 +8,15 @@ import re
 import sys
 
 from datetime import date
-from enum import IntEnum
-from fpdf import FPDF, set_global
 
-set_global("SYSTEM_TTFONTS", os.path.join(os.path.dirname(__file__),'fonts'))
+from pdfprinter import PDFPrinter
+from common import PrintMode, PrintOrder, CardSpacing, ContentSpacing
 
 logging.basicConfig(filename='/dev/stdout/',
                     format='[%(asctime)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                     level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-
-class PrintMode(IntEnum):
-    PHOTO_ONLY = 1  # Printing only images to normal paper
-    TEXT_ONLY = 2   # Printing only descriptions to transparent foil
-    ALL = 3         # Printing everything with classical layout
-
-class PrintOrder(IntEnum):
-    NORMAL = 1     # Photos (and text) are being placed from the top to the bottom of the page
-    REVERSED = 2   # Photos (and text) are being placed from the bottom to the top
-
-class A4Size:
-    """A4 paper size"""
-    w = 210
-    h = 297
-
-class PhotoSize:
-    """Desired photo size"""
-    w = 27
-    h = 37
-
-class TextSize:
-    """Expected max text block size"""
-    w = 46
-    h = 25
-
-class CardSpacing:
-    """Space between initial coordinations (0,0) of objects of the card (i.e. photo and text)"""
-    rowDelta = 6.7      # space between rows of text
-    textDelta = 30      # space between photo and text block
-    dateDelta = 35      # space between text column and date column
-    dayDelta = 5.5      # space between parts of the date
-
-class TextDeltas:
-    """Distances from initial photo position (0,0)"""
-    xName = 0
-    yName = 0
-
-    xNationality = xName
-    yNationality = yName + CardSpacing.rowDelta
-
-    xBirthday = xNationality + CardSpacing.dateDelta
-    yBirthday = yNationality
-
-    xFaculty = xName
-    yFaculty = yBirthday + CardSpacing.rowDelta
-
-    xSection = xName
-    ySection = yFaculty + CardSpacing.rowDelta
-
-    xValidity = xSection + CardSpacing.dateDelta
-    yValidity = ySection
-
-class ContentSpacing:
-    """The most efficient spacing based on printing mode selected"""
-    xLeftLimit = 0      # Topmost X coordinate
-    yTopLimit = 0       # Topmost Y coordinate
-    xRightLimit = 0     # Lowermost possible X coordinate
-    yBottomLimit = 0    # Lowermost possible Y coordinate
-    xBorder = 5         # Border on each side of the page
-    yBorder = 5         # Border on the top and the bottom if the page
-    xIncrement = 0
-    yIncrement = 0
-
-    def __init__(self, mode, order):
-        # Y increment
-        if mode == PrintMode.TEXT_ONLY:
-            self.yIncrement = TextSize.h # Text height
-        else:
-            self.yIncrement = PhotoSize.h # Photo height
-
-        self.yIncrement += 4 # row spacing
-
-        # X increment
-        if mode == PrintMode.PHOTO_ONLY:
-            self.xIncrement = PhotoSize.w # Photo width
-        elif mode == PrintMode.TEXT_ONLY:
-            self.xIncrement = TextSize.w # Text width
-        else:
-            self.xIncrement = PhotoSize.w + 6 + TextSize.w # Photo width + 6mm space + Text width
-
-        self.xIncrement += 2 # column spacing
-
-        # Set generator direction
-        if order == PrintOrder.REVERSED:
-            self.xIncrement *= -1
-            self.yIncrement *= -1
-
-        self.xLeftLimit = self.xBorder
-        self.yTopLimit = self.yBorder
-        self.xRightLimit = A4Size.w - self.xBorder - abs(self.xIncrement)
-        self.yBottomLimit = A4Size.h - self.yBorder - abs(self.yIncrement)
 
 class Config:
     imgextensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff')
@@ -169,57 +77,9 @@ def load_images():
         logger.error(f"Getting images from directory '{Config.imgpath}' failed.")
         sys.exit(1)
 
-def print_person_info(pdf, x, y, pi):
-    pdf.set_font_size(8)
-
-    pdf.text(x + TextDeltas.xName,          y + TextDeltas.yName, pi.name)
-    pdf.text(x + TextDeltas.xNationality,   y + TextDeltas.yNationality, pi.nationality)
-    pdf.text(x + TextDeltas.xFaculty,       y + TextDeltas.yFaculty, pi.faculty)
-    pdf.text(x + TextDeltas.xSection,       y + TextDeltas.ySection, pi.section)
-
-    pdf.text(x + TextDeltas.xBirthday,
-             y + TextDeltas.yBirthday,
-             pi.birthday.strftime("%d")) # day
-    pdf.text(x + TextDeltas.xBirthday + CardSpacing.dayDelta,
-             y + TextDeltas.yBirthday,
-             pi.birthday.strftime("%m")) # month
-    pdf.text(x + TextDeltas.xBirthday + CardSpacing.dayDelta + CardSpacing.dayDelta,
-             y + TextDeltas.yBirthday,
-             pi.birthday.strftime("%y")) # year
-
-    pdf.text(x + TextDeltas.xValidity,
-             y + TextDeltas.yValidity,
-             pi.validity.strftime("%d")) # day
-    pdf.text(x + TextDeltas.xValidity + CardSpacing.dayDelta,
-             y + TextDeltas.yValidity,
-             pi.validity.strftime("%m")) # month
-    pdf.text(x + TextDeltas.xValidity + CardSpacing.dayDelta + CardSpacing.dayDelta,
-             y + TextDeltas.yValidity,
-             pi.validity.strftime("%y")) # year
-
-def print_photo(pdf, x, y, img, name):
-    pdf.image(img, x, y, PhotoSize.w, PhotoSize.h)
-
-    # Write name below the image
-    xText = x
-    yText = y + PhotoSize.h + 2 # photo height + spacing
-
-    pdf.set_font_size(6)
-    pdf.text(xText, yText, name)
-
-def page_setup(pdf):
-    pdf.add_font("NotoSans", style="", fname="NotoSans-Regular.ttf", uni=True)
-    pdf.add_font("NotoSans", style="B", fname="NotoSans-Bold.ttf", uni=True)
-    pdf.add_font("NotoSans", style="I", fname="NotoSans-Italic.ttf", uni=True)
-    pdf.add_font("NotoSans", style="BI", fname="NotoSans-BoldItalic.ttf", uni=True)
-    pdf.set_font("NotoSans", size=8)
-
-    pdf.add_page()
-
 def do():
     # TODO try-catch
-    pdf = FPDF('P', 'mm', 'A4')
-    page_setup(pdf)
+    pp = PDFPrinter(Config.output)
 
     xLeftLimit = Config.spacing.xLeftLimit
     yTopLimit = Config.spacing.yTopLimit
@@ -259,7 +119,8 @@ def do():
                 foundImgs = [f for f in os.listdir(Config.imgpath) if re.match(rf"{pi.name}.*", f) and any(f.endswith(ext) for ext in Config.imgextensions)]
                 logger.debug(f"Matched photos: {foundImgs}")
 
-                print_photo(pdf, x, y, Config.imgpath + foundImgs[0], pi.name)
+                pp.set_coordintates(x, y)
+                pp.print_photo(Config.imgpath + foundImgs[0], pi.name)
 
             if Config.mode != PrintMode.PHOTO_ONLY:
                 xText, yText = x, y
@@ -269,7 +130,8 @@ def do():
                     xText += CardSpacing.textDelta
                     yText += CardSpacing.rowDelta
 
-                print_person_info(pdf, xText, yText, pi)
+                pp.set_coordintates(xText, yText)
+                pp.print_person_info(pi)
 
             x += xIncrement
 
@@ -282,9 +144,9 @@ def do():
             if y < yTopLimit or y > yBottomLimit:
                 logger.debug(f"Height limit reached. Adding a new page.")
                 y = yInit
-                pdf.add_page()
+                pp.add_page()
 
-    pdf.output(Config.output, "F")
+    pp.output()
 
 def main():
     parse_args()
