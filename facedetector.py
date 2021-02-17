@@ -19,20 +19,27 @@ class FaceDetector:
         if len(rects) == 0:
             return []
 
-        # Compute offsets to expand square to fit desired dimensions of a photo
-        wOffsets = int(np.array([(PhotoSize.w - rects[:, 2]) / 2]).T)
-        hOffsets = int(np.array([(PhotoSize.h - rects[:, 3]) / 2]).T)
+        # FIXME hack for 'more' faces in a photo
+        #rects = np.array([rects[0,:]])
 
         # Add x and y coordinates to the width and height of the squere to get second coordinates
         rects[:,2:] += rects[:,:2]
 
-        # Expand the squre
-        rects[:,0] -=  wOffsets
-        rects[:,1] -=  hOffsets
-        rects[:,2] +=  wOffsets
-        rects[:,3] +=  hOffsets
+        #logger.debug(f"Rectangles original: {rects}")
 
-        logger.debug(f"Rectangles: {rects}")
+        # Get correct rectangle ratio and expand it into the correct directions
+        # After the expansion, eyes would be in the middle of the photo,
+        # so the rectangle is expanded more to the bottom and less to the top.
+        # FIXME we count with height being biger than width here...
+        hOffsets = (PhotoSize.h / PhotoSize.w) / 100
+        rects[:,1] -= (rects[:,1] * (hOffsets * 40)).astype(int) # by 40% of the offset to the top
+        rects[:,3] += (rects[:,1] * (hOffsets * 60)).astype(int) # by 60% of the offset to the bottom
+
+        # Now espand the whole rectangle by some relative size to make space for the rest of the head
+        rects[:,:2] -= (rects[:,2:] >> 3) # 12.5% of the bigger coordinate (not a typo)
+        rects[:,2:] += (rects[:,2:] >> 3) # 12.5% of the bigger coordinate
+
+        #logger.debug(f"Rectangles expanded: {rects}")
         return rects
 
     @classmethod
