@@ -39,6 +39,9 @@ class FaceDetector:
         rects[:,:2] -= (rects[:,2:] >> 3) # 12.5% of the bigger coordinate (not a typo)
         rects[:,2:] += (rects[:,2:] >> 3) # 12.5% of the bigger coordinate
 
+        # Fix negative coordinates
+        rects[rects < 0] = 0
+
         #logger.debug(f"Rectangles expanded: {rects}")
         return rects
 
@@ -46,6 +49,10 @@ class FaceDetector:
     def draw_rects(cls, img, rects, color):
         for (x1, y1, x2, y2) in rects:
             cv.rectangle(img, (x1, y1), (x2, y2), color, 2)
+
+    @classmethod
+    def crop(cls, img, x1, y1, x2, y2):
+        return img[y1:y2, x1:x2]
 
     @classmethod
     def run(cls, imgpath, cascpath):
@@ -56,13 +63,19 @@ class FaceDetector:
         gray = cv.equalizeHist(gray)
 
         rects = cls.detect(gray, faceCascade)
+
+        if len(rects) == 0:
+            return img
+
         vis = img.copy()
         cls.draw_rects(vis, rects, (0, 255, 0))
 
-        # TODO handle more faces (?scaleFactor?)
+        # TODO handle more faces
         logger.debug(f"Found {len(rects)} faces!")
 
         cv.imshow("Faces found", vis)
         cv.waitKey(0)
+
+        vis = cls.crop(vis, rects[0,0], rects[0,1], rects[0,2], rects[0,3])
 
         return vis
