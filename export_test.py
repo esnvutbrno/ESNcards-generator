@@ -39,6 +39,13 @@ class PersonInfo:
     section = "ESN VUT Brno"
     validity = None
 
+    def parse(self, row):
+        self.name = row["name"]
+        self.nationality = row["country"]
+        self.birthday = date(int("20" + row["Y0"] + row["Y1"]), int(row["M0"] + row["M1"]), int(row["D0"] + row["D1"]))       # FIXME fix the dirty year hack (20xx)
+        self.validity = date(int("20" + row["TY0"] + row["TY1"]), int(row["TM0"] + row["TM1"]), int(row["TD0"] + row["TD1"])) # FIXME fix the dirty year hack (20xx)
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--imgpath', help=f'folder with images to be processed (default: \'{Config.imgpath}\')')
@@ -108,16 +115,13 @@ def do():
             i += 1
 
             pi = PersonInfo()
-            pi.name = row["name"]
-            pi.nationality = row["country"]
-            pi.birthday = date(int("20" + row["Y0"] + row["Y1"]), int(row["M0"] + row["M1"]), int(row["D0"] + row["D1"]))       # FIXME fix the dirty year hack (20xx)
-            pi.validity = date(int("20" + row["TY0"] + row["TY1"]), int(row["TM0"] + row["TM1"]), int(row["TD0"] + row["TD1"])) # FIXME fix the dirty year hack (20xx)
+            pi.parse(row)
 
             logger.debug(f"Exporting ({i}/{rows}) {pi.name}")
 
             if Config.mode != PrintMode.TEXT_ONLY:
                 foundImgs = [f for f in os.listdir(Config.imgpath) if re.match(rf"{pi.name}.*", f) and any(f.endswith(ext) for ext in Config.imgextensions)]
-                logger.debug(f"Matched photos: {foundImgs}")
+                logger.debug(f"Matched photos: {foundImgs}") # TODO allow user to choose one
 
                 pp.set_coordintates(x, y)
                 pp.print_photo(Config.imgpath + foundImgs[0], pi.name)
