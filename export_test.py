@@ -40,14 +40,14 @@ class PersonInfo:
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--imgpath', help=f'folder with images to be processed (default: \'{Config.imgpath}\')')
-    parser.add_argument('-p', '--peoplecsv', help=f'CSV file with students and their details (default: \'{Config.peoplecsv}\')')
-    parser.add_argument('-o', '--output', help=f'Output file (default: \'{Config.output}\')')
-    parser.add_argument('-m', '--mode', type=int, help=f'Printing mode\n\t{PrintMode.PHOTO_ONLY} - Photo only,\t{PrintMode.TEXT_ONLY} - Text only,\t{PrintMode.ALL} - All (default: {Config.mode})')
-    parser.add_argument('-d', '--direction', type=int, help=f'Printing direction\n\t{PrintDirection.NORMAL} - TOP -> BOTTOM,\t{PrintDirection.REVERSED} - BOTTOM -> TOP (default: {Config.direction})')
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-i', '--imgpath', default=Config.imgpath, help=f'Folder with images to be processed.')
+    parser.add_argument('-p', '--peoplecsv', default=Config.peoplecsv, help=f'CSV file with students and their details.')
+    parser.add_argument('-o', '--output', help=f'Output file. (default: {Config.output})')
+    parser.add_argument('-m', '--mode', type=PrintMode, choices=list(PrintMode), default=Config.mode, help=f'Printing mode.')
+    parser.add_argument('-d', '--direction', type=PrintDirection, choices=list(PrintDirection), default=Config.direction, help=f'Printing direction: {PrintDirection.NORMAL} - TOP -> BOTTOM, {PrintDirection.REVERSED} - BOTTOM -> TOP')
     parser.add_argument('-c', '--crop', help=f'Crop images using face detection.', action='store_true')
-    parser.add_argument('-e', '--equalizehist', type=int, help=f'Equalize histogram. Modes: \n\t{EqualizeHistMode.CLACHE} - Contrast Limited Adaptive Histogram Equalization, {EqualizeHistMode.HEQ_YUV} - Global Histogram Qqualization (YUV), {EqualizeHistMode.HEQ_HSV} - Global Histogram Qqualization (HSV), {EqualizeHistMode.OTHER} - Placeholder for tests. (default: {Config.equalizehist})')
+    parser.add_argument('-e', '--equalizehist', type=EqualizeHistMode, choices=list(EqualizeHistMode), default=Config.equalizehist, help=f'Equalize histogram. Modes: \n\t{EqualizeHistMode.CLACHE} - Contrast Limited Adaptive Histogram Equalization, {EqualizeHistMode.HEQ_YUV} - Global Histogram Qqualization (YUV), {EqualizeHistMode.HEQ_HSV} - Global Histogram Qqualization (HSV), {EqualizeHistMode.OTHER} - Placeholder for tests.')
     parser.add_argument('-f', '--facedetect', help=f'Print rectangle around detected faces (for debug).', action='store_true')
     parser.add_argument('--debug', help=f'Debug mode.', action='store_true')
 

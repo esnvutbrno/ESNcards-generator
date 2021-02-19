@@ -1,19 +1,28 @@
-from enum import IntEnum
+from enum import Enum
 
-class PrintMode(IntEnum):
-    PHOTO_ONLY = 1  # Printing only images to normal paper
-    TEXT_ONLY = 2   # Printing only descriptions to transparent foil
-    ALL = 3         # Printing everything with classical layout
+class PrintMode(Enum):
+    PHOTO_ONLY = 'photo'  # Printing only images to normal paper
+    TEXT_ONLY = 'text'    # Printing only descriptions to transparent foil
+    ALL = 'all'           # Printing everything with classical layout
 
-class PrintDirection(IntEnum):
-    NORMAL = 1     # Photos (and text) are being placed from the top to the bottom of the page
-    REVERSED = 2   # Photos (and text) are being placed from the bottom to the top
+    def __str__(self):
+        return self.value
 
-class EqualizeHistMode(IntEnum):
-    CLACHE = 1     # Contrast Limited Adaptive Histogram Equalization
-    HEQ_YUV = 2    # Global Histogram Qqualization - convertion from BRG to YUV
-    HEQ_HSV = 3    # Global Histogram Qqualization - convertion from BRG to HSV
-    OTHER = 4
+class PrintDirection(Enum):
+    NORMAL = 'normal'     # Photos (and text) are being placed from the top to the bottom of the page
+    REVERSED = 'reversed' # Photos (and text) are being placed from the bottom to the top
+
+    def __str__(self):
+        return self.value
+
+class EqualizeHistMode(Enum):
+    CLACHE = 'clache'     # Contrast Limited Adaptive Histogram Equalization
+    HEQ_YUV = 'heq_yuv'   # Global Histogram Qqualization - convertion from BRG to YUV
+    HEQ_HSV = 'heq_hsv'   # Global Histogram Qqualization - convertion from BRG to HSV
+    OTHER = 'other'       # Placeholder
+
+    def __str__(self):
+        return self.value
 
 
 class A4Size:
@@ -133,40 +142,20 @@ class Config:
 
     @staticmethod
     def setup(args):
-        if args.imgpath is not None:
-            Config.imgpath = args.imgpath + "/"
-
-        if args.peoplecsv is not None:
-            Config.peoplecsv = args.peoplecsv
-
-        if args.mode is not None:
-            if args.mode < PrintMode.PHOTO_ONLY or args.mode > PrintMode.ALL:
-                raise ValueError("Invalid print mode specified.")
-
-            Config.mode = args.mode
+        Config.imgpath = args.imgpath + "/"
+        Config.peoplecsv = args.peoplecsv
+        Config.mode = args.mode
 
         if args.output is not None:
             Config.output = args.output
         else:
             Config.output = f"./output-{Config.mode}.pdf"
 
-        if args.direction is not None:
-            Config.direction = args.direction
-
-        if args.crop is not None:
-            Config.crop = args.crop
-
-        if args.equalizehist is not None:
-            if args.equalizehist < EqualizeHistMode.CLACHE or args.equalizehist > EqualizeHistMode.OTHER:
-                raise ValueError("Invalid equalizehist mode specified.")
-
-            Config.equalizehist = args.equalizehist
-
-        if args.facedetect is not None:
-            Config.facedetect = args.facedetect
-
-        if args.debug is not None:
-            Config.debug = args.debug
+        Config.direction = args.direction
+        Config.crop = args.crop
+        Config.equalizehist = args.equalizehist
+        Config.facedetect = args.facedetect
+        Config.debug = args.debug
 
         Config.spacing = ContentSpacing(Config.mode, Config.direction)
 
