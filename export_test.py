@@ -43,7 +43,7 @@ def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-i', '--imgpath', default=Config.imgpath, help=f'Folder with images to be processed.')
     parser.add_argument('-p', '--peoplecsv', default=Config.peoplecsv, help=f'CSV file with students and their details.')
-    parser.add_argument('-o', '--output', help=f'Output file. (default: {Config.output})')
+    parser.add_argument('-o', '--output', default=argparse.SUPPRESS, help=f'Output file. (default: {Config.output})')
     parser.add_argument('-m', '--mode', type=PrintMode, choices=list(PrintMode), default=Config.mode, help=f'Printing mode.')
     parser.add_argument('-d', '--direction', type=PrintDirection, choices=list(PrintDirection), default=Config.direction, help=f'Printing direction: {PrintDirection.NORMAL} - TOP -> BOTTOM, {PrintDirection.REVERSED} - BOTTOM -> TOP')
     parser.add_argument('-c', '--crop', help=f'Crop images using face detection.', action='store_true')
