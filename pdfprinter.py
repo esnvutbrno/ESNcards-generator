@@ -1,7 +1,7 @@
 import os
 from fpdf import FPDF, set_global
 
-from common import PhotoSize, TextDeltas, CardSpacing
+from config import PhotoSize, TextDeltas, CardSpacing
 
 set_global("SYSTEM_TTFONTS", os.path.join(os.path.dirname(__file__),'fonts'))
 

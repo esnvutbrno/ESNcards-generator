@@ -11,7 +11,7 @@ import tempfile
 
 from datetime import date
 
-from common import PrintMode, PrintOrder, CardSpacing, ContentSpacing
+from config import PrintMode, PrintDirection, EqualizeHistMode, CardSpacing, Config
 from facedetector import FaceDetector
 from pdfprinter import PDFPrinter
 from tools import str2bool
@@ -22,19 +22,7 @@ logging.basicConfig(filename='/dev/stdout/',
 logger = logging.getLogger(__name__)
 
 
-class Config:
-    imgextensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff')
-    imgpath = "/tmp/ESNcard/imgs/"
-    peoplecsv = "/tmp/ESNcard/people.csv"
-    output = "/tmp/ESNcard/images.pdf"
-    spacing = None
-    mode = PrintMode.ALL
-    order = PrintOrder.NORMAL
-    facedetect = False
 
-    @staticmethod
-    def info():
-        return f"imgpath={Config.imgpath}, peoplecsv={Config.peoplecsv}, output={Config.output}, facedetect={Config.facedetect}, imgextensions={Config.imgextensions}, mode: {Config.mode}, order: {Config.order}, spacing:{Config.spacing.xBorder, Config.spacing.yBorder, Config.spacing.xIncrement, Config.spacing.yIncrement}"
 
 class PersonInfo:
     name = ""
@@ -53,38 +41,20 @@ class PersonInfo:
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--imgpath', help=f'folder with images to be processed (default: \'{Config.imgpath}\')')
-    parser.add_argument('--peoplecsv', help=f'CSV file with students and their details (default: \'{Config.peoplecsv}\')')
-    parser.add_argument('--output', help=f'Output file (default: \'{Config.output}\')')
-    parser.add_argument('--mode', type=int, help=f'Printing mode\n\t{PrintMode.PHOTO_ONLY} - Photo only,\t{PrintMode.TEXT_ONLY} - Text only,\t{PrintMode.ALL} - All (default: {Config.mode})')
-    parser.add_argument('--order', type=int, help=f'Printing order\n\t{PrintOrder.NORMAL} - TOP -> BOTTOM,\t{PrintOrder.REVERSED} - BOTTOM -> TOP (default: {Config.order})')
-    parser.add_argument('--facedetect', type=str2bool, help=f'Recognize faces and crop photos. True/False (default: {Config.facedetect})')
+    parser.add_argument('-i', '--imgpath', help=f'folder with images to be processed (default: \'{Config.imgpath}\')')
+    parser.add_argument('-p', '--peoplecsv', help=f'CSV file with students and their details (default: \'{Config.peoplecsv}\')')
+    parser.add_argument('-o', '--output', help=f'Output file (default: \'{Config.output}\')')
+    parser.add_argument('-m', '--mode', type=int, help=f'Printing mode\n\t{PrintMode.PHOTO_ONLY} - Photo only,\t{PrintMode.TEXT_ONLY} - Text only,\t{PrintMode.ALL} - All (default: {Config.mode})')
+    parser.add_argument('-d', '--direction', type=int, help=f'Printing direction\n\t{PrintDirection.NORMAL} - TOP -> BOTTOM,\t{PrintDirection.REVERSED} - BOTTOM -> TOP (default: {Config.direction})')
+    parser.add_argument('-c', '--crop', help=f'Crop images using face detection.', action='store_true')
+    parser.add_argument('-e', '--equalizehist', type=int, help=f'Equalize histogram. Modes: \n\t{EqualizeHistMode.CLACHE} - Contrast Limited Adaptive Histogram Equalization, {EqualizeHistMode.HEQ_YUV} - Global Histogram Qqualization (YUV), {EqualizeHistMode.HEQ_HSV} - Global Histogram Qqualization (HSV), {EqualizeHistMode.OTHER} - Placeholder for tests. (default: {Config.equalizehist})')
+    parser.add_argument('-f', '--facedetect', help=f'Print rectangle around detected faces (for debug).', action='store_true')
+    parser.add_argument('--debug', help=f'Debug mode.', action='store_true')
 
     args, rest = parser.parse_known_args()
     sys.argv = sys.argv[:1] + rest
 
-    if args.mode < 1 or args.mode > 3:
-        raise ValueError("Invalid mode specified.")
-
-    if args.imgpath is not None:
-        Config.imgpath = args.imgpath + "/"
-
-    if args.peoplecsv is not None:
-        Config.peoplecsv = args.peoplecsv
-
-    if args.output is not None:
-        Config.output = args.output
-
-    if args.mode is not None:
-        Config.mode = args.mode
-
-    if args.order is not None:
-        Config.order = args.order
-
-    if args.facedetect is not None:
-        Config.facedetect = args.facedetect
-
-    Config.spacing = ContentSpacing(Config.mode, Config.order)
+    Config.setup(args)
 
 def load_images():
     try:
@@ -104,7 +74,7 @@ def do():
     xIncrement = Config.spacing.xIncrement
     yIncrement = Config.spacing.yIncrement
 
-    if Config.order == PrintOrder.NORMAL:
+    if Config.direction == PrintDirection.NORMAL:
         xInit= xLeftLimit
         yInit = yTopLimit
     else:
@@ -132,23 +102,22 @@ def do():
                 foundImgs = [f for f in os.listdir(Config.imgpath) if re.match(rf".*{pi.name}.*", f) and any(f.endswith(ext) for ext in Config.imgextensions)]
                 logger.debug(f"Matched photos: {foundImgs}") # TODO allow user to choose one
 
+                # TODO refactor this if statement
                 if not foundImgs:
-                    logger.error(f"!!! Could not find image for '{pi.name}'. Skipping...")
-                    continue
+                    logger.error(f"!!! Could not find image for '{pi.name}'. Skipping photo print...")
+                else:
+                    # TODO equalize histogram
 
-                # TODO equalize histogram
+                    imgpath = Config.imgpath + foundImgs[0]
 
-                imgpath = Config.imgpath + foundImgs[0]
+                    if Config.facedetect or Config.crop or Config.equalizehist:
+                        vis = FaceDetector.run(imgpath, "haarcascade_frontalface_default.xml")
+                        tmpfile = tempfile._get_default_tempdir() + "/" + next(tempfile._get_candidate_names()) + ".jpg"
+                        cv2.imwrite(tmpfile, vis)
+                        imgpath = tmpfile
 
-                if Config.facedetect == True:
-                    vis = FaceDetector.run(imgpath, "haarcascade_frontalface_default.xml")
-                    tmpfile = tempfile._get_default_tempdir() + "/" + next(tempfile._get_candidate_names()) + ".jpg"
-                    cv2.imwrite(tmpfile, vis)
-                    imgpath = tmpfile
-                    # TODO if no faces found use original photo + debug log
-
-                pp.set_coordintates(x, y)
-                pp.print_photo(imgpath, pi.name)
+                    pp.set_coordintates(x, y)
+                    pp.print_photo(imgpath, pi.name)
 
             if Config.mode != PrintMode.PHOTO_ONLY:
                 xText, yText = x, y
