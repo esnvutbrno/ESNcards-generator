@@ -79,7 +79,7 @@ class ContentSpacing:
     xIncrement = 0
     yIncrement = 0
 
-    xSpacing = 2        # Space between cards on the paper
+    xSpacing = 4        # Space between cards on the paper
     ySpacing = 4        # Space between cards on the papier
     photoTextSpacing = 6# Space between right side of the photo and text.
 
