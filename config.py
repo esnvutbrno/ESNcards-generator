@@ -42,10 +42,10 @@ class TextSize:
 
 
 class CardSpacing:
-    """Space between initial coordinations (0,0) of objects of the card (i.e. photo and text)"""
-    rowDelta = 6.7      # space between rows of text
+    """Space between initial coordinations (0,0) of objects of the card (i.e. photo, text, etc)"""
+    rowDelta = 6.8      # space between rows of text
     textDelta = 30      # space between photo and text block
-    dateDelta = 35      # space between text column and date column
+    dateDelta = 33      # space between text column and date column
     dayDelta = 5.5      # space between parts of the date
 
 class TextDeltas:

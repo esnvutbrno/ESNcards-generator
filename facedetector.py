@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 class FaceDetector:
     @staticmethod
-    def detect(img, cascade):
+    def detect(img, cascade, expand = True):
         rects = cascade.detectMultiScale(
             img,
             scaleFactor=1.01,
@@ -23,25 +23,26 @@ class FaceDetector:
         # FIXME hack for 'more' faces in a photo
         #rects = np.array([rects[0,:]])
 
-        # Add x and y coordinates to the width and height of the squere to get second coordinates
+        # Add x and y coordinates to the width and height of the square to get second coordinates
         rects[:,2:] += rects[:,:2]
 
         #logger.debug(f"Rectangles original: {rects}")
 
-        # Get correct rectangle ratio and expand it into the correct directions
-        # After the expansion, eyes would be in the middle of the photo,
-        # so the rectangle is expanded more to the bottom and less to the top.
-        # FIXME we count with height being biger than width here...
-        hOffsets = (PhotoSize.h / PhotoSize.w) / 100
-        rects[:,1] -= (rects[:,1] * (hOffsets * 40)).astype(int) # by 40% of the offset to the top
-        rects[:,3] += (rects[:,1] * (hOffsets * 60)).astype(int) # by 60% of the offset to the bottom
+        if expand:
+            # Get correct rectangle ratio and expand it into the correct directions
+            # After the expansion, eyes would be in the middle of the photo,
+            # so the rectangle is expanded more to the bottom and less to the top.
+            # FIXME we count with height being biger than width here...
+            hOffsets = (PhotoSize.h / PhotoSize.w) / 100
+            rects[:,1] -= (rects[:,1] * (hOffsets * 40)).astype(int) # by 40% of the offset to the top
+            rects[:,3] += (rects[:,1] * (hOffsets * 60)).astype(int) # by 60% of the offset to the bottom
 
-        # Now espand the whole rectangle by some relative size to make space for the rest of the head
-        rects[:,:2] -= (rects[:,2:] >> 3) # 12.5% of the bigger coordinate (not a typo)
-        rects[:,2:] += (rects[:,2:] >> 3) # 12.5% of the bigger coordinate
+            # Now espand the whole rectangle by some relative size to make space for the rest of the head
+            rects[:,:2] -= (rects[:,2:] >> 3) # 12.5% of the bigger coordinate (not a typo)
+            rects[:,2:] += (rects[:,2:] >> 3) # 12.5% of the bigger coordinate
 
-        # Fix negative coordinates
-        rects[rects < 0] = 0
+            # Fix negative coordinates
+            rects[rects < 0] = 0
 
         #logger.debug(f"Rectangles expanded: {rects}")
         return rects
@@ -105,12 +106,14 @@ class FaceDetector:
         gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
         gray = cv.equalizeHist(gray)
 
-        rects = FaceDetector.detect(gray, faceCascade)
+        rects = FaceDetector.detect(gray, faceCascade, False)
 
         logger.debug(f"Found {len(rects)} faces!")
 
         if len(rects) == 0:
             return img
+        elif len(rects) > 1:
+            pass # TODO handle more faces and false positives
 
         vis = img.copy()
 
@@ -122,7 +125,6 @@ class FaceDetector:
                 cv.waitKey(0)
 
         if Config.crop:
-            # TODO handle more faces and false positives
             vis = FaceDetector.crop(vis, rects[0,0], rects[0,1], rects[0,2], rects[0,3])
 
         if Config.equalizehist:

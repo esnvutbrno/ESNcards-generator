@@ -133,8 +133,6 @@ def do():
                     if foundImg is None:
                         logger.error(f"!!! Could not find an image for '{pi.name}'. Skipping photo print...")
                     else:
-                        # TODO equalize histogram
-
                         imgpath = os.path.join(Config.imgpath, foundImg)
 
                         if Config.facedetect or Config.crop or Config.equalizehist:
