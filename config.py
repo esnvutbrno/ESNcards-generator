@@ -122,7 +122,7 @@ class Config:
     direction = PrintDirection.NORMAL
     crop = False
     equalizehist = None
-    facedetect = True
+    facedetect = False
     debug = False
 
     @staticmethod
