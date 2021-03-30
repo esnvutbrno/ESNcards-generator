@@ -74,8 +74,8 @@ class ContentSpacing:
     yTopLimit = 0       # Topmost Y coordinate
     xRightLimit = 0     # Lowermost possible X coordinate
     yBottomLimit = 0    # Lowermost possible Y coordinate
-    xBorder = 5         # Border on each side of the page
-    yBorder = 5         # Border on the top and the bottom if the page
+    xBorder = 10         # Border on each side of the page
+    yBorder = 10         # Border on the top and the bottom if the page
     xIncrement = 0
     yIncrement = 0
 
