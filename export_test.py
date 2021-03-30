@@ -43,7 +43,7 @@ def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-i', '--imgpath', default=Config.imgpath, help=f'Folder with images to be processed.')
     parser.add_argument('-p', '--peoplecsv', default=Config.peoplecsv, help=f'CSV file with students and their details.')
-    parser.add_argument('-o', '--output', default=Config.output, help=f'Output file.')
+    parser.add_argument('-o', '--output', default=argparse.SUPPRESS, help=f'Output file. (default: {Config.output})')
     parser.add_argument('-m', '--mode', type=PrintMode, choices=list(PrintMode), default=Config.mode, help=f'Printing mode.')
     parser.add_argument('-d', '--direction', type=PrintDirection, choices=list(PrintDirection), default=Config.direction, help=f'Printing direction: {PrintDirection.NORMAL} - TOP -> BOTTOM, {PrintDirection.REVERSED} - BOTTOM -> TOP')
     parser.add_argument('-e', '--equalizehist', type=EqualizeHistMode, choices=list(EqualizeHistMode), default=Config.equalizehist, help=f'Equalize histogram. Modes: \n\t{EqualizeHistMode.CLACHE} - Contrast Limited Adaptive Histogram Equalization, {EqualizeHistMode.HEQ_YUV} - Global Histogram Equalization (YUV), {EqualizeHistMode.HEQ_HSV} - Global Histogram Qqualization (HSV), {EqualizeHistMode.OTHER} - Placeholder for tests.')
@@ -62,6 +62,30 @@ def load_images():
     except:
         logger.error(f"Getting images from directory '{Config.imgpath}' failed.")
         sys.exit(1)
+
+def get_image(name):
+    foundImgs = [f for f in os.listdir(Config.imgpath) if re.match(rf".*{name}.*", f) and any(f.endswith(ext) for ext in Config.imgextensions)]
+    logger.debug(f"Matched photos: {foundImgs}")
+
+    if len(foundImgs) == 1:
+        return foundImgs[0]
+
+    if not foundImgs:
+        return None
+
+    # We found more images...choose one
+    i = 0
+    for img in foundImgs:
+        print(f"[{i}] " + img)
+        i += 1
+
+    print("Which image should be used?")
+    i = input("Enter one number [0]: ")
+
+    if not i.isnumeric() or i >= len(foundImgs) or i < 0:
+        return foundImgs[0]
+    else:
+        return foundImgs[i]
 
 def do():
     # TODO try-catch
@@ -99,25 +123,29 @@ def do():
             logger.debug(f"Exporting ({i}/{rows}) {pi.name}")
 
             if Config.mode != PrintMode.TEXT_ONLY:
-                foundImgs = [f for f in os.listdir(Config.imgpath) if re.match(rf".*{pi.name}.*", f) and any(f.endswith(ext) for ext in Config.imgextensions)]
-                logger.debug(f"Matched photos: {foundImgs}") # TODO allow user to choose one
+                foundImg = get_image(pi.name)
 
                 # TODO refactor this if statement
-                if not foundImgs:
-                    logger.error(f"!!! Could not find image for '{pi.name}'. Skipping photo print...")
+                if foundImg is None:
+                    logger.error(f"!!! Could not find an image for '{pi.name}'. Skipping photo print...")
                 else:
                     # TODO equalize histogram
+                    try:
+                        imgpath = Config.imgpath + foundImg
 
-                    imgpath = Config.imgpath + foundImgs[0]
+                        if Config.facedetect or Config.crop or Config.equalizehist:
+                            try:
+                                vis = FaceDetector.run(imgpath, "haarcascade_frontalface_default.xml")
+                                tmpfile = tempfile._get_default_tempdir() + "/" + next(tempfile._get_candidate_names()) + ".jpg"
+                                cv2.imwrite(tmpfile, vis)
+                                imgpath = tmpfile
+                            except Exception as e:
+                                logger.error(f"!!! FaceDetector thrown an Exception!\n{str(e)}")
 
-                    if Config.facedetect or Config.crop or Config.equalizehist:
-                        vis = FaceDetector.run(imgpath, "haarcascade_frontalface_default.xml")
-                        tmpfile = tempfile._get_default_tempdir() + "/" + next(tempfile._get_candidate_names()) + ".jpg"
-                        cv2.imwrite(tmpfile, vis)
-                        imgpath = tmpfile
-
-                    pp.set_coordintates(x, y)
-                    pp.print_photo(imgpath, pi.name)
+                        pp.set_coordintates(x, y)
+                        pp.print_photo(imgpath, pi.name)
+                    except Exception as e:
+                        logger.error(f"!!! Could not print the image!\n{str(e)}")
 
             if Config.mode != PrintMode.PHOTO_ONLY:
                 xText, yText = x, y
@@ -130,6 +158,7 @@ def do():
                 pp.set_coordintates(xText, yText)
                 pp.print_person_info(pi)
 
+            # Compute new coordinates
             x += xIncrement
 
             # check for need to increment/decrement row
