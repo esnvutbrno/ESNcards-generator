@@ -74,8 +74,8 @@ class ContentSpacing:
     yTopLimit = 0       # Topmost Y coordinate
     xRightLimit = 0     # Lowermost possible X coordinate
     yBottomLimit = 0    # Lowermost possible Y coordinate
-    xBorder = 10         # Border on each side of the page
-    yBorder = 10         # Border on the top and the bottom if the page
+    xBorder = 8         # Border on each side of the page
+    yBorder = 8         # Border on the top and the bottom if the page
     xIncrement = 0
     yIncrement = 0
 
@@ -146,7 +146,7 @@ class Config:
         Config.peoplecsv = args.peoplecsv
         Config.mode = args.mode
 
-        if args.output is not None:
+        if hasattr(args, 'output') and args.output is not None:
             Config.output = args.output
         else:
             Config.output = f"./output-{Config.mode}.pdf"
