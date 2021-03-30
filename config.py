@@ -115,9 +115,9 @@ class ContentSpacing:
 class Config:
     imgextensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff')
     spacing = None
-    imgpath = "./pictures/"
-    peoplecsv = "./students.csv"
-    output = "./output-<mode>.pdf"
+    imgpath = "pictures"
+    peoplecsv = "students.csv"
+    output = "output-<mode>.pdf"
     mode = PrintMode.ALL
     direction = PrintDirection.NORMAL
     crop = False
@@ -142,14 +142,14 @@ class Config:
 
     @staticmethod
     def setup(args):
-        Config.imgpath = args.imgpath + "/"
+        Config.imgpath = args.imgpath
         Config.peoplecsv = args.peoplecsv
         Config.mode = args.mode
 
         if hasattr(args, 'output') and args.output is not None:
             Config.output = args.output
         else:
-            Config.output = f"./output-{Config.mode}.pdf"
+            Config.output = f"output-{Config.mode}.pdf"
 
         Config.direction = args.direction
         Config.crop = args.crop

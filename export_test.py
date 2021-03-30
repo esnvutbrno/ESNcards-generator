@@ -14,14 +14,11 @@ from datetime import date
 from config import PrintMode, PrintDirection, EqualizeHistMode, CardSpacing, Config
 from facedetector import FaceDetector
 from pdfprinter import PDFPrinter
-from tools import str2bool
 
 logging.basicConfig(filename='/dev/stdout/',
                     format='[%(asctime)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                     level=logging.DEBUG)
 logger = logging.getLogger(__name__)
-
-
 
 
 class PersonInfo:
@@ -82,7 +79,13 @@ def get_image(name):
     print("Which image should be used?")
     i = input("Enter one number [0]: ")
 
-    if not i.isnumeric() or i >= len(foundImgs) or i < 0:
+    if i.isnumeric():
+        i = int(i)
+    else:
+        logger.warning(f"'{i}' is not an integer! Choosing the first image.")
+        return foundImgs[0]
+
+    if i >= len(foundImgs) or i < 0:
         return foundImgs[0]
     else:
         return foundImgs[i]
@@ -123,20 +126,21 @@ def do():
             logger.debug(f"Exporting ({i}/{rows}) {pi.name}")
 
             if Config.mode != PrintMode.TEXT_ONLY:
-                foundImg = get_image(pi.name)
+                try:
+                    foundImg = get_image(pi.name)
 
-                # TODO refactor this if statement
-                if foundImg is None:
-                    logger.error(f"!!! Could not find an image for '{pi.name}'. Skipping photo print...")
-                else:
-                    # TODO equalize histogram
-                    try:
-                        imgpath = Config.imgpath + foundImg
+                    # TODO refactor this if statement
+                    if foundImg is None:
+                        logger.error(f"!!! Could not find an image for '{pi.name}'. Skipping photo print...")
+                    else:
+                        # TODO equalize histogram
+
+                        imgpath = os.path.join(Config.imgpath, foundImg)
 
                         if Config.facedetect or Config.crop or Config.equalizehist:
                             try:
                                 vis = FaceDetector.run(imgpath, "haarcascade_frontalface_default.xml")
-                                tmpfile = tempfile._get_default_tempdir() + "/" + next(tempfile._get_candidate_names()) + ".jpg"
+                                tmpfile = os.path.join(tempfile._get_default_tempdir(), next(tempfile._get_candidate_names()) + ".jpg")
                                 cv2.imwrite(tmpfile, vis)
                                 imgpath = tmpfile
                             except Exception as e:
@@ -144,8 +148,8 @@ def do():
 
                         pp.set_coordintates(x, y)
                         pp.print_photo(imgpath, pi.name)
-                    except Exception as e:
-                        logger.error(f"!!! Could not print the image!\n{str(e)}")
+                except Exception as e:
+                    logger.error(f"!!! Could not print the image!\n{str(e)}")
 
             if Config.mode != PrintMode.PHOTO_ONLY:
                 xText, yText = x, y
