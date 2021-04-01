@@ -123,7 +123,7 @@ def do():
             pi = PersonInfo()
             pi.parse(row)
 
-            logger.debug(f"Exporting ({i}/{rows}) {pi.name}")
+            logger.info(f"Exporting ({i}/{rows}) {pi.name}")
 
             if Config.mode != PrintMode.TEXT_ONLY:
                 try:
