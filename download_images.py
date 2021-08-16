@@ -99,6 +99,42 @@ if len(sys.argv) == 3:
 else:
     csv_output = open("students.csv", "w", encoding='utf-8')
 
+def parse_name(name) -> str:
+    if False and len(name) > 30:
+        print('WARNING: Name "' + name + '" longer than 30 characters!')
+        names = name.split()
+        i = 0
+        for n in names:
+            print("[" + str(i) + "] " + n)
+            i += 1
+        print("Which names should I use? (use numbers separated by ',')")
+        text = input("Names: ")
+        names_to_use = text.split(",")
+        name = ""
+        for ntu in names_to_use:
+            name += " " + names[int(ntu)]
+        name = name[1:]
+
+    # Delete spaces at the beginning
+    while name[0].isspace():
+        name = name[1:]
+
+    # Delete spaces at the end
+    while name[-1].isspace():
+        name = name[:-1]
+
+    return name
+
+def parse_country(country) -> str:
+    # Delete spaces at the beginning
+    while country[0].isspace():
+        country = country[1:]
+    # Delete spaces at the end
+    while country[-1].isspace():
+        country = country[:-1]
+    
+    return country
+
 with open(sys.argv[1], "r", encoding='utf-8') as f:
     csv_reader = csv.reader(f, delimiter=';')
     dirName = 'pictures'
@@ -111,38 +147,23 @@ with open(sys.argv[1], "r", encoding='utf-8') as f:
     for line in csv_reader:
         if line_number == 0:
             csv_output.write("name,country,D0,D1,M0,M1,Y0,Y1,")
-            csv_output.write("TD0,TD1,TM0,TM1,TY0,TY1\n")
+            csv_output.write("TD0,TD1,TM0,TM1,TY0,TY1,referral,before_arrival\n")
         else:
+            TIMESTAMP_IDX = 0
+            EMAIL_IDX = 1
+            NAME_IDX = 2
+            COUNTRY_IDX = 3
+            DATEOFBIRTH_IDX = 4
+            PHOTOURL_IDX = 5
+            LA_IDX = 6
+            REFERRAL_IDX = 7
+            BEFOREARRIVAL_IDX = 8
+
             print(str(line_number) + "/" + str(total_lines - 1))
-            name = line[1]
-            if False and len(name) > 30:
-                print('WARNING: Name "' + name + '" longer than 30 characters!')
-                names = name.split()
-                i = 0
-                for n in names:
-                    print("[" + str(i) + "] " + n)
-                    i += 1
-                print("Which names should I use? (use numbers separated by ',')")
-                text = input("Names: ")
-                names_to_use = text.split(",")
-                name = ""
-                for ntu in names_to_use:
-                    name += " " + names[int(ntu)]
-                name = name[1:]
-            # Delete spaces at the beginning
-            while name[0].isspace():
-                name = name[1:]
-            # Delete spaces at the end
-            while name[-1].isspace():
-                name = name[:-1]
-            country = line[2]
-            # Delete spaces at the beginning
-            while country[0].isspace():
-                country = country[1:]
-            # Delete spaces at the end
-            while country[-1].isspace():
-                country = country[:-1]
-            date_str = line[3]
+            name = parse_name(line[NAME_IDX])
+            country = parse_country(line[COUNTRY_IDX])
+            
+            date_str = line[DATEOFBIRTH_IDX]
             date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
             today_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             age = relativedelta(datetime.now(), date_obj).years
@@ -162,8 +183,8 @@ with open(sys.argv[1], "r", encoding='utf-8') as f:
             TY1 = today_str[3]
             csv_output.write(
                 '"' + name + '"' + "," + '"' + country + '"' + "," + D0 + "," + D1 + "," + M0 + "," + M1 + "," + Y0 + "," + Y1 + ",")
-            csv_output.write(TD0 + "," + TD1 + "," + TM0 + "," + TM1 + "," + TY0 + "," + TY1 + "\n")
-            file_id = line[4][line[4].find("id=") + 3:]
+            csv_output.write(TD0 + "," + TD1 + "," + TM0 + "," + TM1 + "," + TY0 + "," + TY1 + "," + line[REFERRAL_IDX] + "," + line[BEFOREARRIVAL_IDX] + "\n")
+            file_id = line[PHOTOURL_IDX][line[PHOTOURL_IDX].find("id=") + 3:]
             download_file_from_google_drive(file_id, name)
             fileType = imghdr.what(name)
             if fileType == None:
