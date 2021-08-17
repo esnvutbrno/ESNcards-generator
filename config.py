@@ -16,7 +16,7 @@ class PrintDirection(Enum):
         return self.value
 
 class EqualizeHistMode(Enum):
-    CLACHE = 'clache'     # Contrast Limited Adaptive Histogram Equalization
+    CLAHE = 'clahe'       # Contrast Limited Adaptive Histogram Equalization
     HEQ_YUV = 'heq_yuv'   # Global Histogram Qqualization - convertion from BRG to YUV
     HEQ_HSV = 'heq_hsv'   # Global Histogram Qqualization - convertion from BRG to HSV
     OTHER = 'other'       # Placeholder
@@ -122,8 +122,7 @@ class Config:
     direction = PrintDirection.NORMAL
     crop = False
     equalizehist = None
-    facedetect = False
-    debug = False
+    interactive = False
 
     @staticmethod
     def info():
@@ -137,8 +136,7 @@ class Config:
                     direction: {Config.direction},
                     crop: {Config.crop},
                     equalizehist: {Config.equalizehist},
-                    facedetect: {Config.facedetect},
-                    debug: {Config.debug}"""
+                    interactive: {Config.interactive}"""
 
     @staticmethod
     def setup(args):
@@ -154,8 +152,7 @@ class Config:
         Config.direction = args.direction
         Config.crop = args.crop
         Config.equalizehist = args.equalizehist
-        Config.facedetect = args.facedetect
-        Config.debug = args.debug
+        Config.interactive = args.interactive
 
         Config.spacing = ContentSpacing(Config.mode, Config.direction)
 

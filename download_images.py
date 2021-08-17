@@ -147,7 +147,7 @@ with open(sys.argv[1], "r", encoding='utf-8') as f:
     for line in csv_reader:
         if line_number == 0:
             csv_output.write("name,country,D0,D1,M0,M1,Y0,Y1,")
-            csv_output.write("TD0,TD1,TM0,TM1,TY0,TY1,referral,before_arrival\n")
+            csv_output.write("TD0,TD1,TM0,TM1,TY0,TY1,before_arrival\n")
         else:
             TIMESTAMP_IDX = 0
             EMAIL_IDX = 1
@@ -183,7 +183,7 @@ with open(sys.argv[1], "r", encoding='utf-8') as f:
             TY1 = today_str[3]
             csv_output.write(
                 '"' + name + '"' + "," + '"' + country + '"' + "," + D0 + "," + D1 + "," + M0 + "," + M1 + "," + Y0 + "," + Y1 + ",")
-            csv_output.write(TD0 + "," + TD1 + "," + TM0 + "," + TM1 + "," + TY0 + "," + TY1 + "," + line[REFERRAL_IDX] + "," + line[BEFOREARRIVAL_IDX] + "\n")
+            csv_output.write(TD0 + "," + TD1 + "," + TM0 + "," + TM1 + "," + TY0 + "," + TY1 + "," + line[BEFOREARRIVAL_IDX] + "\n")
             file_id = line[PHOTOURL_IDX][line[PHOTOURL_IDX].find("id=") + 3:]
             download_file_from_google_drive(file_id, name)
             fileType = imghdr.what(name)
