@@ -74,13 +74,13 @@ class ContentSpacing:
     yTopLimit = 0       # Topmost Y coordinate
     xRightLimit = 0     # Lowermost possible X coordinate
     yBottomLimit = 0    # Lowermost possible Y coordinate
-    xBorder = 8         # Border on each side of the page
-    yBorder = 8         # Border on the top and the bottom if the page
+    xBorder = 7         # Border on each side of the page
+    yBorder = 7         # Border on the top and the bottom if the page
     xIncrement = 0
     yIncrement = 0
 
-    xSpacing = 4        # Space between cards on the paper
-    ySpacing = 4        # Space between cards on the papier
+    xSpacing = 3        # Space between cards on the paper
+    ySpacing = 3        # Space between cards on the papier
     photoTextSpacing = 6# Space between right side of the photo and text.
 
     def __init__(self, mode, order):
