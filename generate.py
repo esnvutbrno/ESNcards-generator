@@ -28,12 +28,17 @@ class PersonInfo:
     faculty = "VUT Brno"
     section = "ESN VUT Brno"
     validity = None
+    before_arrival = ""
+
+    def __init__(self, row):
+        self.parse(row)
 
     def parse(self, row):
         self.name = row["name"]
         self.nationality = row["country"]
         self.birthday = date(int("20" + row["Y0"] + row["Y1"]), int(row["M0"] + row["M1"]), int(row["D0"] + row["D1"]))       # FIXME fix the dirty year hack (20xx)
         self.validity = date(int("20" + row["TY0"] + row["TY1"]), int(row["TM0"] + row["TM1"]), int(row["TD0"] + row["TD1"])) # FIXME fix the dirty year hack (20xx)
+        self.before_arrival = row["before_arrival"]
 
 
 def parse_args():
@@ -43,10 +48,9 @@ def parse_args():
     parser.add_argument('-o', '--output', default=argparse.SUPPRESS, help=f'Output file. (default: {Config.output})')
     parser.add_argument('-m', '--mode', type=PrintMode, choices=list(PrintMode), default=Config.mode, help=f'Printing mode.')
     parser.add_argument('-d', '--direction', type=PrintDirection, choices=list(PrintDirection), default=Config.direction, help=f'Printing direction: {PrintDirection.NORMAL} - TOP -> BOTTOM, {PrintDirection.REVERSED} - BOTTOM -> TOP')
-    parser.add_argument('-e', '--equalizehist', type=EqualizeHistMode, choices=list(EqualizeHistMode), default=Config.equalizehist, help=f'Equalize histogram. Modes: \n\t{EqualizeHistMode.CLACHE} - Contrast Limited Adaptive Histogram Equalization, {EqualizeHistMode.HEQ_YUV} - Global Histogram Equalization (YUV), {EqualizeHistMode.HEQ_HSV} - Global Histogram Qqualization (HSV), {EqualizeHistMode.OTHER} - Placeholder for tests.')
+    parser.add_argument('-e', '--equalizehist', type=EqualizeHistMode, choices=list(EqualizeHistMode), default=Config.equalizehist, help=f'Equalize histogram. Modes: \n\t{EqualizeHistMode.CLAHE} - Contrast Limited Adaptive Histogram Equalization, {EqualizeHistMode.HEQ_YUV} - Global Histogram Equalization (YUV), {EqualizeHistMode.HEQ_HSV} - Global Histogram Qqualization (HSV), {EqualizeHistMode.OTHER} - Placeholder for tests.')
     parser.add_argument('-c', '--crop', help=f'Crop images using face detection.', action='store_true')
-    parser.add_argument('-f', '--facedetect', help=f'Print rectangle around detected faces (for debug).', action='store_true')
-    parser.add_argument('--debug', help=f'Debug mode.', action='store_true')
+    parser.add_argument('--interactive', help=f'Ask which image to use each time - original, or cropped.', action='store_true')
 
     args, rest = parser.parse_known_args()
     sys.argv = sys.argv[:1] + rest
@@ -120,8 +124,7 @@ def do():
         for row in reader:
             i += 1
 
-            pi = PersonInfo()
-            pi.parse(row)
+            pi = PersonInfo(row)
 
             logger.info(f"Exporting ({i}/{rows}) {pi.name}")
 
@@ -135,7 +138,7 @@ def do():
                     else:
                         imgpath = os.path.join(Config.imgpath, foundImg)
 
-                        if Config.facedetect or Config.crop or Config.equalizehist:
+                        if Config.interactive or Config.crop or Config.equalizehist:
                             try:
                                 vis = FaceDetector.run(imgpath, "haarcascade_frontalface_default.xml")
                                 tmpfile = os.path.join(tempfile._get_default_tempdir(), next(tempfile._get_candidate_names()) + ".jpg")
@@ -143,9 +146,11 @@ def do():
                                 imgpath = tmpfile
                             except Exception as e:
                                 logger.error(f"!!! FaceDetector thrown an Exception!\n{str(e)}")
+                                logger.warning(f"Skipping the person completely...")
+                                continue
 
                         pp.set_coordintates(x, y)
-                        pp.print_photo(imgpath, pi.name)
+                        pp.print_photo(imgpath, pi)
                 except Exception as e:
                     logger.error(f"!!! Could not print the image!\n{str(e)}")
 

@@ -28,7 +28,7 @@ class PDFPrinter:
         self.xCurrent = x
         self.yCurrent = y
 
-    def print_photo(self, img, name):
+    def print_photo(self, img, pi):
         x = self.xCurrent
         y = self.yCurrent
 
@@ -39,7 +39,7 @@ class PDFPrinter:
         yText = y + PhotoSize.h + 2 # photo height + spacing
 
         self.pdf.set_font_size(6)
-        self.pdf.text(xText, yText, name)
+        self.pdf.text(xText, yText, pi.name + "," + pi.before_arrival)
 
     def print_person_info(self, pi):
         self.pdf.set_font_size(8)

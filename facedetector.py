@@ -1,8 +1,10 @@
 import cv2 as cv
 import numpy as np
 import logging
+import matplotlib.pyplot as plt
 
 from config import EqualizeHistMode, PhotoSize, Config
+from tools import retrieve_name
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +26,11 @@ class FaceDetector:
         rects[:,1] -= rects[:,3] >> 3 # by 12.5% of the offset to the top
 
 
-
         # Fix negative coordinates
-        negCoords = rects[rects < 0]
-        # TODO add negCoords to oposite coordintes
+        # Mask only negative values and make them positive
+        negCoords = np.negative(rects[:,:2] * (rects[:,:2] < 0))
+        # Add negative part to the oposite coordinates
+        rects[:, 2:] += negCoords
         rects[rects < 0] = 0
 
         return rects
@@ -56,19 +59,30 @@ class FaceDetector:
         # Add x and y coordinates to the width and height of the square to get second coordinates
         rects[:,2:] += rects[:,:2]
 
+        # Make sure the rectangle is not larger than the image
+        h,w = img.shape
+        rects[rects[..., 2] > w, 2] = w
+        rects[rects[..., 3] > h, 3] = h
+            
         return rects
 
     @staticmethod
     def draw_rects(img, rects, color):
+        i = 0
         for (x1, y1, x2, y2) in rects:
             cv.rectangle(img, (x1, y1), (x2, y2), color, 2)
+
+            if np.shape(rects)[0] > 1:
+                fontSize = (x2-x1)>>6
+                cv.putText(img, str(i), (x1, y2), cv.FONT_HERSHEY_SIMPLEX, fontSize, color, fontSize)
+                i += 1
 
     @staticmethod
     def crop(img, x1, y1, x2, y2):
         return img[y1:y2, x1:x2]
 
     @staticmethod
-    def histogram_equalization(img_in):
+    def hist_eq_other(img_in):
         #https://stackoverflow.com/a/62980480
 
         # segregate color streams
@@ -110,6 +124,30 @@ class FaceDetector:
         return img_out
 
     @staticmethod
+    def hist_eq_clahe(img):
+        img_yuv = cv.cvtColor(img, cv.COLOR_BGR2YUV)
+        clahe = cv.createCLAHE(clipLimit=2.0, tileGridSize=(2,2))
+        img_yuv[:,:,0] = clahe.apply(img_yuv[:,:,0])
+        img_out = cv.cvtColor(img_yuv, cv.COLOR_YUV2BGR)
+        return img_out
+
+    @staticmethod
+    def hist_eq_heq_yuv(img):
+        img_yuv = cv.cvtColor(img, cv.COLOR_BGR2YUV)
+        # Histogram equalisation on the Y-channel
+        img_yuv[:, :, 0] = cv.equalizeHist(img_yuv[:, :, 0])
+        img_out = cv.cvtColor(img_yuv, cv.COLOR_YUV2BGR)
+        return img_out
+
+    @staticmethod
+    def hist_eq_heq_hsv(img):
+        img_hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+        # Histogram equalisation on the V-channel
+        img_hsv[:, :, 2] = cv.equalizeHist(img_hsv[:, :, 2])
+        img_out = cv.cvtColor(img_hsv, cv.COLOR_HSV2BGR)
+        return img_out
+
+    @staticmethod
     def run(imgpath, cascpath):
         img = cv.imread(imgpath)
         faceCascade = cv.CascadeClassifier(cascpath)
@@ -124,42 +162,88 @@ class FaceDetector:
         if len(rects) == 0:
             return img
         elif len(rects) > 1:
-            pass # TODO handle more faces and false positives
+            # We found more faces...choose one
+            vis_faces = img.copy()
+            FaceDetector.draw_rects(vis_faces, rects, (0, 255, 0))
+            cv.imshow("Several faces found!", vis_faces)
+            i = input("Enter one number [0]: ")
+
+            if i.isnumeric() and int(i) < np.shape(rects)[0]:
+                rects = rects[[int(i)], :]
+            else:
+                logger.warning(f"'{i}' is not valid! Choosing the 0th one.")
+                rects = rects[[0], :]
+            
+            cv.destroyAllWindows()
 
         vis = img.copy()
-
-        if Config.facedetect:
-            FaceDetector.draw_rects(vis, rects, (0, 255, 0))
-
-            if Config.debug:
-                cv.imshow("Faces found", vis)
-                cv.waitKey(0)
-
+        
         if Config.crop:
             vis = FaceDetector.crop(vis, rects[0,0], rects[0,1], rects[0,2], rects[0,3])
 
         if Config.equalizehist:
             # TODO https://docs.opencv.org/3.1.0/d5/daf/tutorial_py_histogram_equalization.html
 
-            if Config.equalizehist == EqualizeHistMode.CLACHE:
-                img_yuv = cv.cvtColor(vis, cv.COLOR_BGR2YUV)
-                clahe = cv.createCLAHE(clipLimit=2.0, tileGridSize=(2,2))
-                img_yuv[:,:,0] = clahe.apply(img_yuv[:,:,0])
-                vis = cv.cvtColor(img_yuv, cv.COLOR_YUV2BGR)
+            if Config.equalizehist == EqualizeHistMode.CLAHE:
+                vis = FaceDetector.hist_eq_clahe(vis)
 
             elif Config.equalizehist == EqualizeHistMode.HEQ_YUV:
-                img_yuv = cv.cvtColor(vis, cv.COLOR_BGR2YUV)
-                # Histogram equalisation on the Y-channel
-                img_yuv[:, :, 0] = cv.equalizeHist(img_yuv[:, :, 0])
-                vis = cv.cvtColor(img_yuv, cv.COLOR_YUV2BGR)
+                vis = FaceDetector.hist_eq_heq_yuv(vis)
 
             elif Config.equalizehist == EqualizeHistMode.HEQ_HSV:
-                img_hsv = cv.cvtColor(vis, cv.COLOR_BGR2HSV)
-                # Histogram equalisation on the V-channel
-                img_hsv[:, :, 2] = cv.equalizeHist(img_hsv[:, :, 2])
-                vis = cv.cvtColor(img_hsv, cv.COLOR_HSV2BGR)
+                vis = FaceDetector.hist_eq_heq_hsv(vis)
 
             elif Config.equalizehist == EqualizeHistMode.OTHER:
-                vis = FaceDetector.histogram_equalization(vis)
+                vis = FaceDetector.hist_eq_other(vis)
+
+        if Config.interactive:
+            # In interactive mode, do not care about previous `vis` results, 
+            # just compute all variants and show them.
+
+            # Original version with rectangles printed
+            vis_rects = vis.copy()
+            FaceDetector.draw_rects(vis_rects, rects, (0, 255, 0))
+
+            # Crop around face
+            vis_cropped = FaceDetector.crop(vis, rects[0,0], rects[0,1], rects[0,2], rects[0,3])
+            
+            # Different histogram equalization methods
+            vis_eq_clahe = FaceDetector.hist_eq_clahe(vis_cropped)
+            vis_eq_heq_yuv = FaceDetector.hist_eq_heq_yuv(vis_cropped)
+            vis_eq_heq_hsv = FaceDetector.hist_eq_heq_hsv(vis_cropped)
+            vis_eq_other = FaceDetector.hist_eq_other(vis_cropped)
+
+            vislist = [vis, vis_cropped, vis_eq_clahe, vis_eq_heq_yuv, vis_eq_heq_hsv, vis_eq_other]
+
+            f, ax = plt.subplots(3,2)
+            i = 0
+            for axi in ax.ravel(): 
+                axi.set_axis_off()
+                axi.set_title(str(i) + ":" + retrieve_name(vislist[i]))
+                i += 1
+            
+            ax[0,0].imshow(cv.cvtColor(vis_rects, cv.COLOR_BGR2RGB))
+            ax[0,1].imshow(cv.cvtColor(vislist[1], cv.COLOR_BGR2RGB))
+            ax[1,0].imshow(cv.cvtColor(vislist[2], cv.COLOR_BGR2RGB))
+            ax[1,1].imshow(cv.cvtColor(vislist[3], cv.COLOR_BGR2RGB))
+            ax[2,0].imshow(cv.cvtColor(vislist[4], cv.COLOR_BGR2RGB))
+            ax[2,1].imshow(cv.cvtColor(vislist[5], cv.COLOR_BGR2RGB))
+            f.tight_layout()
+
+            print(f"Which image should be used? ({len(vislist)}) to skip this person.")
+            i = input("Enter one number [1]: ")
+
+            if i.isnumeric() and int(i) <= len(vislist):
+                i = int(i)
+            else:
+                logger.warning(f"'{i}' is not valid! Choosing the cropped image.")
+                i = 1
+            
+            if i == 6:
+                raise Exception("Skipping person...")
+
+            vis = vislist[i]
+
+            plt.close(f)
 
         return vis

@@ -16,7 +16,7 @@ class PrintDirection(Enum):
         return self.value
 
 class EqualizeHistMode(Enum):
-    CLACHE = 'clache'     # Contrast Limited Adaptive Histogram Equalization
+    CLAHE = 'clahe'       # Contrast Limited Adaptive Histogram Equalization
     HEQ_YUV = 'heq_yuv'   # Global Histogram Qqualization - convertion from BRG to YUV
     HEQ_HSV = 'heq_hsv'   # Global Histogram Qqualization - convertion from BRG to HSV
     OTHER = 'other'       # Placeholder
@@ -74,13 +74,18 @@ class ContentSpacing:
     yTopLimit = 0       # Topmost Y coordinate
     xRightLimit = 0     # Lowermost possible X coordinate
     yBottomLimit = 0    # Lowermost possible Y coordinate
-    xBorder = 8         # Border on each side of the page
-    yBorder = 8         # Border on the top and the bottom if the page
+    xBorder = 7         # Border on each side of the page
+    yBorder = 7         # Border on the top and the bottom if the page
     xIncrement = 0
     yIncrement = 0
 
+<<<<<<< HEAD
     xSpacing = 4        # Space between cards on the paper
     ySpacing = 4        # Space between cards on the papier
+=======
+    xSpacing = 3        # Space between cards on the paper
+    ySpacing = 3        # Space between cards on the papier
+>>>>>>> upstream/master
     photoTextSpacing = 6# Space between right side of the photo and text.
 
     def __init__(self, mode, order):
@@ -122,8 +127,7 @@ class Config:
     direction = PrintDirection.NORMAL
     crop = False
     equalizehist = None
-    facedetect = False
-    debug = False
+    interactive = False
 
     @staticmethod
     def info():
@@ -137,8 +141,7 @@ class Config:
                     direction: {Config.direction},
                     crop: {Config.crop},
                     equalizehist: {Config.equalizehist},
-                    facedetect: {Config.facedetect},
-                    debug: {Config.debug}"""
+                    interactive: {Config.interactive}"""
 
     @staticmethod
     def setup(args):
@@ -154,8 +157,7 @@ class Config:
         Config.direction = args.direction
         Config.crop = args.crop
         Config.equalizehist = args.equalizehist
-        Config.facedetect = args.facedetect
-        Config.debug = args.debug
+        Config.interactive = args.interactive
 
         Config.spacing = ContentSpacing(Config.mode, Config.direction)
 
