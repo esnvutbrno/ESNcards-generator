@@ -1,7 +1,7 @@
 import os
 from fpdf import FPDF, set_global
 
-from config import PhotoSize, TextDeltas, CardSpacing
+from config import PhotoSize, TextDeltas, CardSpacing, ContentSpacing
 
 set_global("SYSTEM_TTFONTS", os.path.join(os.path.dirname(__file__),'fonts'))
 
@@ -71,6 +71,17 @@ class PDFPrinter:
         self.pdf.text(x + TextDeltas.xValidity + CardSpacing.dayDelta + CardSpacing.dayDelta,
                 y + TextDeltas.yValidity,
                 pi.validity.strftime("%y")) # year
+
+        # Print delimiter
+        delimX1 = x + TextDeltas.xValidity + 2*(CardSpacing.dayDelta) + 2.5 + ContentSpacing.xSpacing/4
+        delimX2 = delimX1 + ContentSpacing.xSpacing/2
+        delimX0 = delimX1 + ContentSpacing.xSpacing/4
+        delimY1 = y + TextDeltas.yValidity + ContentSpacing.ySpacing/4
+        delimY2 = delimY1 + ContentSpacing.ySpacing/2
+        delimY0 = delimY1 + ContentSpacing.ySpacing/4
+
+        self.pdf.line(delimX1, delimY0, delimX2, delimY0)
+        self.pdf.line(delimX0, delimY1, delimX0, delimY2)
 
     def output(self):
         self.pdf.output(self.path, "F")
