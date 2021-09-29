@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import csv
 import imghdr
 import os
@@ -94,10 +96,11 @@ if len(sys.argv) != 2 and len(sys.argv) != 3:
 
 replace_and_count(sys.argv[1], '","', '";"')
 
-if len(sys.argv) == 3:
-    csv_output = open(sys.argv[2], "w", encoding='utf-8')
-else:
-    csv_output = open("students.csv", "w", encoding='utf-8')
+def open_output():
+    if len(sys.argv) == 3:
+        return open(sys.argv[2], "a", encoding='utf-8')
+    else:
+        return open("students.csv", "a", encoding='utf-8')
 
 def parse_name(name) -> str:
     if False and len(name) > 30:
@@ -134,6 +137,8 @@ def parse_country(country) -> str:
         country = country[:-1]
     
     return country
+
+csv_output = open_output()
 
 with open(sys.argv[1], "r", encoding='utf-8') as f:
     csv_reader = csv.reader(f, delimiter=';')
@@ -181,17 +186,24 @@ with open(sys.argv[1], "r", encoding='utf-8') as f:
             TM1 = today_str[6]
             TY0 = today_str[2]
             TY1 = today_str[3]
+            print(line)
+            
             csv_output.write(
                 '"' + name + '"' + "," + '"' + country + '"' + "," + D0 + "," + D1 + "," + M0 + "," + M1 + "," + Y0 + "," + Y1 + ",")
             csv_output.write(TD0 + "," + TD1 + "," + TM0 + "," + TM1 + "," + TY0 + "," + TY1 + "," + line[BEFOREARRIVAL_IDX] + "\n")
             file_id = line[PHOTOURL_IDX][line[PHOTOURL_IDX].find("id=") + 3:]
             download_file_from_google_drive(file_id, name)
             fileType = imghdr.what(name)
+
             if fileType == None:
                 print(
                     "Couldn't find out the picture type, please add it manually to the end of the filename for " + name)
             else:
                 move(name, os.path.join('pictures', name + '.' + fileType))
+
+            csv_output.close()
+            csv_output = open_output()
+
         line_number += 1
 
 csv_output.close()

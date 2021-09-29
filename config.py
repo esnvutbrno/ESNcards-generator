@@ -79,13 +79,8 @@ class ContentSpacing:
     xIncrement = 0
     yIncrement = 0
 
-<<<<<<< HEAD
-    xSpacing = 4        # Space between cards on the paper
-    ySpacing = 4        # Space between cards on the papier
-=======
     xSpacing = 3        # Space between cards on the paper
     ySpacing = 3        # Space between cards on the papier
->>>>>>> upstream/master
     photoTextSpacing = 6# Space between right side of the photo and text.
 
     def __init__(self, mode, order):
