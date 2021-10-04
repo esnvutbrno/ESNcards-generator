@@ -45,7 +45,8 @@ def download_file_from_google_drive(file_id, destination):
         "https://www.googleapis.com/drive/v3/files/{}?alt=media".format(file_id),
         params={'id': id},
         stream=True,
-        headers={'Authorization': 'Bearer {}'.format(credentials.token)}
+        headers={'Authorization': 'Bearer {}'.format(credentials.token)},
+        timeout=5
     )
 
     save_response_content(response, destination)
@@ -185,13 +186,18 @@ with open(sys.argv[1], "r", encoding='utf-8') as f:
                 '"' + name + '"' + "," + '"' + country + '"' + "," + D0 + "," + D1 + "," + M0 + "," + M1 + "," + Y0 + "," + Y1 + ",")
             csv_output.write(TD0 + "," + TD1 + "," + TM0 + "," + TM1 + "," + TY0 + "," + TY1 + "," + line[BEFOREARRIVAL_IDX] + "\n")
             file_id = line[PHOTOURL_IDX][line[PHOTOURL_IDX].find("id=") + 3:]
-            download_file_from_google_drive(file_id, name)
-            fileType = imghdr.what(name)
-            if fileType == None:
-                print(
-                    "Couldn't find out the picture type, please add it manually to the end of the filename for " + name)
-            else:
-                move(name, os.path.join('pictures', name + '.' + fileType))
+
+            try:
+                download_file_from_google_drive(file_id, name)
+                fileType = imghdr.what(name)
+                if fileType == None:
+                    print(
+                        "Couldn't find out the picture type, please add it manually to the end of the filename for " + name)
+                else:
+                    move(name, os.path.join('pictures', name + '.' + fileType))
+            except Exception as e:
+                print("ERROR: Exception trown. ", e)
         line_number += 1
+        csv_output.flush()
 
 csv_output.close()
