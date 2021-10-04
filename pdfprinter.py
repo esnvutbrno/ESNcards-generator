@@ -72,13 +72,13 @@ class PDFPrinter:
                       y + TextDeltas.yValidity,
                       pi.validity.strftime("%y")) # year
 
-        # Print person delimiter (for easier cutting of prints)
-        delimX1 = x + TextDeltas.xValidity + 2*(CardSpacing.dayDelta) + 2.5 + ContentSpacing.xSpacing/4
+    def print_delimiter(self, x, y):
+        delimX1 = x - ContentSpacing.xSpacing/2
         delimX2 = delimX1 + ContentSpacing.xSpacing/2
-        delimX0 = delimX1 + ContentSpacing.xSpacing/4
-        delimY1 = y + TextDeltas.yValidity + ContentSpacing.ySpacing/4
+        delimX0 = delimX1 + (delimX2-delimX1)/2
+        delimY1 = y - ContentSpacing.ySpacing/3
         delimY2 = delimY1 + ContentSpacing.ySpacing/2
-        delimY0 = delimY1 + ContentSpacing.ySpacing/4
+        delimY0 = delimY1 + (delimY2-delimY1)/2
 
         self.pdf.line(delimX1, delimY0, delimX2, delimY0)
         self.pdf.line(delimX0, delimY1, delimX0, delimY2)

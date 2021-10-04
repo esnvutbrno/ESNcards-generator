@@ -171,6 +171,15 @@ def do():
             if x < xLeftLimit or x > xRightLimit:
                 x = xInit
                 y += yIncrement
+            else:
+                # Print person delimiter (for easier cutting of prints)
+                xDelim = x # already incremented
+                yDelim = y + yIncrement # we did not increment row, do it here
+
+                if Config.mode == PrintMode.TEXT_ONLY:
+                    # Init position for printing of photos is top-left but for text it's bottom-right
+                    yDelim -= CardSpacing.rowDelta
+                pp.print_delimiter(xDelim, yDelim)
 
             # Check if a new page should be added
             if y < yTopLimit or y > yBottomLimit:
