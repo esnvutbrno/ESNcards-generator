@@ -36,8 +36,8 @@ class PersonInfo:
     def parse(self, row):
         self.name = row["name"]
         self.nationality = row["country"]
-        self.birthday = date(int("20" + row["Y0"] + row["Y1"]), int(row["M0"] + row["M1"]), int(row["D0"] + row["D1"]))       # FIXME fix the dirty year hack (20xx)
-        self.validity = date(int("20" + row["TY0"] + row["TY1"]), int(row["TM0"] + row["TM1"]), int(row["TD0"] + row["TD1"])) # FIXME fix the dirty year hack (20xx)
+        self.birthday = date(int("20" + row["Y0"] + row["Y1"]), int(row["M0"] + row["M1"]), int(row["D0"] + row["D1"]))       # FIXME fix the dirty year hack (20xx) - download_images.py does not export first two numbers of the year
+        self.validity = date(int("20" + row["TY0"] + row["TY1"]), int(row["TM0"] + row["TM1"]), int(row["TD0"] + row["TD1"])) # FIXME fix the dirty year hack (20xx) - download_images.py does not export first two numbers of the year
         self.before_arrival = row["before_arrival"]
 
 
@@ -83,16 +83,13 @@ def get_image(name):
     print("Which image should be used?")
     i = input("Enter one number [0]: ")
 
-    if i.isnumeric():
+    if i.isnumeric() and i < len(foundImgs) and i > 0:
         i = int(i)
     else:
         logger.warning(f"'{i}' is not an integer! Choosing the first image.")
-        return foundImgs[0]
+        i = 0
 
-    if i >= len(foundImgs) or i < 0:
-        return foundImgs[0]
-    else:
-        return foundImgs[i]
+    return foundImgs[i]
 
 def do():
     # TODO try-catch
@@ -128,6 +125,7 @@ def do():
 
             logger.info(f"Exporting ({i}/{rows}) {pi.name}")
 
+            # Print photo, if needed
             if Config.mode != PrintMode.TEXT_ONLY:
                 try:
                     foundImg = get_image(pi.name)
@@ -154,6 +152,7 @@ def do():
                 except Exception as e:
                     logger.error(f"!!! Could not print the image!\n{str(e)}")
 
+            # Print person info, if needed
             if Config.mode != PrintMode.PHOTO_ONLY:
                 xText, yText = x, y
 
@@ -168,12 +167,21 @@ def do():
             # Compute new coordinates
             x += xIncrement
 
-            # check for need to increment/decrement row
+            # Check for need to increment/decrement row
             if x < xLeftLimit or x > xRightLimit:
                 x = xInit
                 y += yIncrement
+            else:
+                # Print person delimiter (for easier cutting of prints)
+                xDelim = x # already incremented
+                yDelim = y + yIncrement # we did not increment row, do it here
 
-            # check if a new page should be added
+                if Config.mode == PrintMode.TEXT_ONLY:
+                    # Init position for printing of photos is top-left but for text it's bottom-right
+                    yDelim -= CardSpacing.rowDelta
+                pp.print_delimiter(xDelim, yDelim)
+
+            # Check if a new page should be added
             if y < yTopLimit or y > yBottomLimit:
                 logger.debug(f"Height limit reached. Adding a new page.")
                 y = yInit
