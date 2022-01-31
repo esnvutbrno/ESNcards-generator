@@ -149,14 +149,17 @@ class FaceDetector:
 
     @staticmethod
     def run(imgpath, cascpath):
+        # Prepare vars
         img = cv.imread(imgpath)
         faceCascade = cv.CascadeClassifier(cascpath)
 
         gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
         gray = cv.equalizeHist(gray)
 
+        # Run facial recognition
         rects = FaceDetector.detect(gray, faceCascade)
 
+        # Process found faces
         logger.debug(f"Found {len(rects)} faces!")
 
         if len(rects) == 0:
@@ -178,27 +181,9 @@ class FaceDetector:
             rects = rects[[0], :]
 
         vis = img.copy()
-        
-        if Config.crop:
-            vis = FaceDetector.crop(vis, rects[0,0], rects[0,1], rects[0,2], rects[0,3])
-
-        if Config.equalizehist:
-            # TODO https://docs.opencv.org/3.1.0/d5/daf/tutorial_py_histogram_equalization.html
-
-            if Config.equalizehist == EqualizeHistMode.CLAHE:
-                vis = FaceDetector.hist_eq_clahe(vis)
-
-            elif Config.equalizehist == EqualizeHistMode.HEQ_YUV:
-                vis = FaceDetector.hist_eq_heq_yuv(vis)
-
-            elif Config.equalizehist == EqualizeHistMode.HEQ_HSV:
-                vis = FaceDetector.hist_eq_heq_hsv(vis)
-
-            elif Config.equalizehist == EqualizeHistMode.OTHER:
-                vis = FaceDetector.hist_eq_other(vis)
 
         if Config.interactive:
-            # In interactive mode, do not care about previous `vis` results, 
+            # In interactive mode, do not care about other settings,
             # just compute all variants and show them.
 
             # Original version with rectangles printed
@@ -234,6 +219,8 @@ class FaceDetector:
             print(f"Which image should be used? ({len(vislist)}) to skip this person.")
             i = input("Enter one number [1]: ")
 
+            plt.close(f)
+
             if i.isnumeric() and int(i) <= len(vislist):
                 i = int(i)
             else:
@@ -243,8 +230,25 @@ class FaceDetector:
             if i == 6:
                 raise Exception("Skipping person...")
 
-            vis = vislist[i]
+            return vislist[i]
 
-            plt.close(f)
+        # Not interactive mode, continue in your stuff
+        if Config.crop:
+            vis = FaceDetector.crop(vis, rects[0,0], rects[0,1], rects[0,2], rects[0,3])
 
+        if Config.equalizehist:
+            # TODO https://docs.opencv.org/3.1.0/d5/daf/tutorial_py_histogram_equalization.html
+
+            if Config.equalizehist == EqualizeHistMode.CLAHE:
+                vis = FaceDetector.hist_eq_clahe(vis)
+
+            elif Config.equalizehist == EqualizeHistMode.HEQ_YUV:
+                vis = FaceDetector.hist_eq_heq_yuv(vis)
+
+            elif Config.equalizehist == EqualizeHistMode.HEQ_HSV:
+                vis = FaceDetector.hist_eq_heq_hsv(vis)
+
+            elif Config.equalizehist == EqualizeHistMode.OTHER:
+                vis = FaceDetector.hist_eq_other(vis)
+            
         return vis

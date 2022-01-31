@@ -47,7 +47,8 @@ def download_file_from_google_drive(file_id, destination):
         "https://www.googleapis.com/drive/v3/files/{}?alt=media".format(file_id),
         params={'id': id},
         stream=True,
-        headers={'Authorization': 'Bearer {}'.format(credentials.token)}
+        headers={'Authorization': 'Bearer {}'.format(credentials.token)},
+        timeout=5
     )
 
     save_response_content(response, destination)
@@ -186,20 +187,18 @@ with open(sys.argv[1], "r", encoding='utf-8') as f:
                 f'{line[BEFOREARRIVAL_IDX]}\n'
             )
             file_id = line[PHOTOURL_IDX][line[PHOTOURL_IDX].find("id=") + 3:]
-            download_file_from_google_drive(file_id, name)
-            image_type = imghdr.what(name)
 
-            if not image_type:
-                print(
-                    f"Couldn\'t find out the picture type,"
-                    f"please add it manually to the end of the filename for {name}"
-                )
-            else:
-                move(name, os.path.join('pictures', name + '.' + image_type))
-
-            csv_output.close()
-            csv_output = open_output()
-
+            try:
+                download_file_from_google_drive(file_id, name)
+                file_type = imghdr.what(name)
+                if not file_type:
+                    print(
+                        "Couldn't find out the picture type, please add it manually to the end of the filename for " + name)
+                else:
+                    move(name, os.path.join('pictures', name + '.' + file_type))
+            except Exception as e:
+                print("ERROR: Exception trown. ", e)
         line_number += 1
+        csv_output.flush()
 
 csv_output.close()
