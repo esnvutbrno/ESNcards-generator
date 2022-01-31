@@ -121,7 +121,8 @@ def do():
 
     with open(Config.peoplecsv, newline='') as csvfile:
         reader = csv.DictReader(csvfile)
-        for row in reader:
+        data = sorted(reader, key=lambda d: (d['country'], d['name']))
+        for row in data:
             i += 1
 
             pi = PersonInfo(row)

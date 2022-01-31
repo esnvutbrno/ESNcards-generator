@@ -39,7 +39,7 @@ class PDFPrinter:
         yText = y + PhotoSize.h + 2 # photo height + spacing
 
         self.pdf.set_font_size(6)
-        self.pdf.text(xText, yText, pi.name + "," + pi.before_arrival)
+        self.pdf.text(xText, yText, f'{pi.nationality}: {pi.name}')# + "," + pi.before_arrival)
 
     def print_person_info(self, pi):
         self.pdf.set_font_size(8)

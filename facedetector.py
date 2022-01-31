@@ -162,19 +162,20 @@ class FaceDetector:
         if len(rects) == 0:
             return img
         elif len(rects) > 1:
-            # We found more faces...choose one
-            vis_faces = img.copy()
-            FaceDetector.draw_rects(vis_faces, rects, (0, 255, 0))
-            cv.imshow("Several faces found!", vis_faces)
-            i = input("Enter one number [0]: ")
-
-            if i.isnumeric() and int(i) < np.shape(rects)[0]:
-                rects = rects[[int(i)], :]
-            else:
-                logger.warning(f"'{i}' is not valid! Choosing the 0th one.")
-                rects = rects[[0], :]
-            
-            cv.destroyAllWindows()
+            # # We found more faces...choose one
+            # vis_faces = img.copy()
+            # FaceDetector.draw_rects(vis_faces, rects, (0, 255, 0))
+            # cv.imshow("Several faces found!", vis_faces)
+            # i = input("Enter one number [0]: ")
+            #
+            # if i.isnumeric() and int(i) < np.shape(rects)[0]:
+            #     rects = rects[[int(i)], :]
+            # else:
+            #     logger.warning(f"'{i}' is not valid! Choosing the 0th one.")
+            #     rects = rects[[0], :]
+            #
+            # cv.destroyAllWindows()
+            rects = rects[[0], :]
 
         vis = img.copy()
         
