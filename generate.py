@@ -180,7 +180,8 @@ def do():
                 if Config.mode == PrintMode.TEXT_ONLY:
                     # Init position for printing of photos is top-left but for text it's bottom-right
                     yDelim -= CardSpacing.rowDelta
-                pp.print_delimiter(xDelim, yDelim)
+
+            pp.print_delimiter(xDelim, yDelim)
 
             # Check if a new page should be added
             if y < yTopLimit or y > yBottomLimit:
