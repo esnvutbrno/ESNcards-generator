@@ -12,3 +12,9 @@ Download form responses in .csv format. Then run the following command:
 ```
 python3 ./download_images.py <downloaded_form_file>.csv
 ```
+
+## Generating ESNcard print files
+
+```
+python3 generate.py
+```

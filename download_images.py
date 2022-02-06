@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import csv
 import imghdr
 import os
@@ -95,10 +97,13 @@ if len(sys.argv) != 2 and len(sys.argv) != 3:
 
 replace_and_count(sys.argv[1], '","', '";"')
 
-if len(sys.argv) == 3:
-    csv_output = open(sys.argv[2], "w", encoding='utf-8')
-else:
-    csv_output = open("students.csv", "w", encoding='utf-8')
+
+def open_output():
+    if len(sys.argv) == 3:
+        return open(sys.argv[2], "a", encoding='utf-8')
+    else:
+        return open("students.csv", "a", encoding='utf-8')
+
 
 def parse_name(name) -> str:
     if False and len(name) > 30:
@@ -126,6 +131,7 @@ def parse_name(name) -> str:
 
     return name
 
+
 def parse_country(country) -> str:
     # Delete spaces at the beginning
     while country[0].isspace():
@@ -133,11 +139,14 @@ def parse_country(country) -> str:
     # Delete spaces at the end
     while country[-1].isspace():
         country = country[:-1]
-    
+
     return country
 
+
+csv_output = open_output()
+
 with open(sys.argv[1], "r", encoding='utf-8') as f:
-    csv_reader = csv.reader(f, delimiter=';')
+    csv_reader = csv.reader(f, delimiter=',')
     dirName = 'pictures'
     try:
         # Create target Directory
@@ -161,40 +170,32 @@ with open(sys.argv[1], "r", encoding='utf-8') as f:
             BEFOREARRIVAL_IDX = 8
 
             print(str(line_number) + "/" + str(total_lines - 1))
+            print(line)
             name = parse_name(line[NAME_IDX])
             country = parse_country(line[COUNTRY_IDX])
-            
-            date_str = line[DATEOFBIRTH_IDX]
-            date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
-            today_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            age = relativedelta(datetime.now(), date_obj).years
+
+            birth_date = datetime.strptime(line[DATEOFBIRTH_IDX], "%d.%m.%Y").date()
+            today = datetime.now()
+            age = relativedelta(datetime.now(), birth_date).years
             if age < 18:
                 print("ERROR: " + name + " younger than 18! (" + str(age) + ")")
-            D0 = date_str[8]
-            D1 = date_str[9]
-            M0 = date_str[5]
-            M1 = date_str[6]
-            Y0 = date_str[2]
-            Y1 = date_str[3]
-            TD0 = today_str[8]
-            TD1 = today_str[9]
-            TM0 = today_str[5]
-            TM1 = today_str[6]
-            TY0 = today_str[2]
-            TY1 = today_str[3]
+
             csv_output.write(
-                '"' + name + '"' + "," + '"' + country + '"' + "," + D0 + "," + D1 + "," + M0 + "," + M1 + "," + Y0 + "," + Y1 + ",")
-            csv_output.write(TD0 + "," + TD1 + "," + TM0 + "," + TM1 + "," + TY0 + "," + TY1 + "," + line[BEFOREARRIVAL_IDX] + "\n")
+                f'\"{name}\",\"{country}\",'
+                f'{",".join(birth_date.strftime("%d%m%y"))},'
+                f'{",".join(today.strftime("%d%m%y"))},'
+                f'{line[BEFOREARRIVAL_IDX]}\n'
+            )
             file_id = line[PHOTOURL_IDX][line[PHOTOURL_IDX].find("id=") + 3:]
 
             try:
                 download_file_from_google_drive(file_id, name)
-                fileType = imghdr.what(name)
-                if fileType == None:
+                file_type = imghdr.what(name)
+                if not file_type:
                     print(
                         "Couldn't find out the picture type, please add it manually to the end of the filename for " + name)
                 else:
-                    move(name, os.path.join('pictures', name + '.' + fileType))
+                    move(name, os.path.join('pictures', name + '.' + file_type))
             except Exception as e:
                 print("ERROR: Exception trown. ", e)
         line_number += 1

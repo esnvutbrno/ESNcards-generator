@@ -118,7 +118,8 @@ def do():
 
     with open(Config.peoplecsv, newline='') as csvfile:
         reader = csv.DictReader(csvfile)
-        for row in reader:
+        data = sorted(reader, key=lambda d: (d['country'], d['name']))
+        for row in data:
             i += 1
 
             pi = PersonInfo(row)
@@ -173,13 +174,14 @@ def do():
                 y += yIncrement
             else:
                 # Print person delimiter (for easier cutting of prints)
-                xDelim = x # already incremented
-                yDelim = y + yIncrement # we did not increment row, do it here
+                xDelim = x - (Config.spacing.xSpacing / 2) # x already incremented, get between cols
+                yDelim = y + yIncrement - (Config.spacing.ySpacing / 3) # we did not increment row, do it here and get between the two
 
                 if Config.mode == PrintMode.TEXT_ONLY:
                     # Init position for printing of photos is top-left but for text it's bottom-right
                     yDelim -= CardSpacing.rowDelta
-                pp.print_delimiter(xDelim, yDelim)
+
+                pp.print_delimiter(xDelim, yDelim, xDelim - Config.spacing.xIncrement, yDelim - Config.spacing.yIncrement)
 
             # Check if a new page should be added
             if y < yTopLimit or y > yBottomLimit:
