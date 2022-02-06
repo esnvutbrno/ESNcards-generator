@@ -1,7 +1,7 @@
 import os
 from fpdf import FPDF, set_global
 
-from config import PhotoSize, TextDeltas, CardSpacing, ContentSpacing, TextSize
+from config import PhotoSize, PrintMode, TextDeltas, CardSpacing, ContentSpacing, TextSize
 
 set_global("SYSTEM_TTFONTS", os.path.join(os.path.dirname(__file__), 'fonts'))
 
@@ -73,24 +73,26 @@ class PDFPrinter:
                       y + TextDeltas.yValidity,
                       pi.validity.strftime("%y"))  # year
 
-    def print_delimiter(self, x, y):
-        delimX1 = x - ContentSpacing.xSpacing / 2
-        delimX2 = delimX1 + ContentSpacing.xSpacing / 2
-        delimX0 = delimX1 + (delimX2 - delimX1) / 2
+    def print_delimiter(self, x, y, x1, y1):
+        if (0 == 1):
+            delimX1 = x - ContentSpacing.xSpacing / 3
+            delimX2 = x + ContentSpacing.xSpacing / 3
+    
+            delimY1 = y - ContentSpacing.ySpacing / 3
+            delimY2 = y + ContentSpacing.ySpacing / 3
 
-        delimY1 = y - ContentSpacing.ySpacing / 3
-        delimY2 = delimY1 + ContentSpacing.ySpacing / 2
-        delimY0 = delimY1 + (delimY2 - delimY1) / 2
+            self.pdf.line(delimX1, y, delimX2, y)
+            self.pdf.line(x, delimY1, x, delimY2)
+        else:        
+            self.pdf.dashed_line(x,
+                                y,
+                                x1,
+                                y)
 
-        self.pdf.dashed_line(x - TextSize.w - ContentSpacing.xSpacing,
-                             y + ContentSpacing.ySpacing / 2,
-                             x + TextSize.w + ContentSpacing.xSpacing,
-                             y + ContentSpacing.ySpacing / 2)
-
-        self.pdf.dashed_line(delimX0,
-                             y - TextSize.h - ContentSpacing.ySpacing,
-                             delimX0,
-                             y + TextSize.h + ContentSpacing.ySpacing)
+            self.pdf.dashed_line(x,
+                                y,
+                                x,
+                                y1)
 
     def output(self):
         self.pdf.output(self.path, "F")
