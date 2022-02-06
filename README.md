@@ -1,10 +1,6 @@
+# ESNcards generator
 
-### `download_images.py`
-
-File `client_secret.json` (placed in project root) is needed to access Google Drive, you can get one from
-[Google APIs](https://console.developers.google.com/apis/credentials), especially
-OAuth 2.0
-Client IDs (with all Google Drive perms) for your own project.
+This tools serves help for ESN members to mass produce ESNcards, it gets input data rom `.csv` file downloaded from Application Google Form, downloads uploaded photos of applications, and generated `.pdf` as print resources. 
 
 ## How to produce cards
 ### Installation
@@ -25,6 +21,11 @@ Download form responses in .csv format, expected headers:
 * `Do you need it before your arrival in Brno?`
 
 ### Download photos
+
+File `client_secret.json` (placed in project root) is needed to access Google Drive, you can get one from
+[Google APIs](https://console.developers.google.com/apis/credentials), especially
+OAuth 2.0
+Client IDs (with all Google Drive perms) for your own project.
 
 Then run the following command:
 
@@ -79,3 +80,8 @@ To render just photos to print, output is `output-photo.pdf`:
 * IT department of ESN VUT Brno:
 * [Jozef Zuzelka](https://github.com/jzlka)
 * [Joe Kolář](https://github.com/thejoeejoee)
+
+## Sample outputs
+![all-1](https://user-images.githubusercontent.com/6154740/152674928-3744ecf1-4a56-4f1a-99db-28e2953994c5.png)
+![photo-1](https://user-images.githubusercontent.com/6154740/152674929-ab546157-d1ab-4baf-9858-94103248eff3.png)
+![text-1](https://user-images.githubusercontent.com/6154740/152674930-d3a78bac-27a1-40c9-8899-6143c0208622.png)
