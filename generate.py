@@ -174,7 +174,7 @@ def do():
                 # Get one row upper. This little hack is needed as TextBlock is hardcoded and not computed using CardSpacing + Content Spacing
                 yDelim -= (CardSpacing.rowDelta * 0.5)
             else:
-                # In other modes, move back just part of the spacing (cannot half because of country printed below the photo)
+                # In other modes, move back just part of the spacing (cannot by half because of country printed below the photo)
                 yDelim -= (Config.spacing.ySpacing * 0.2)
 
             pp.print_delimiter(xDelim, yDelim, DelimiterStyle.FRAME)
