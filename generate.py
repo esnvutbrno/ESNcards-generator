@@ -166,8 +166,8 @@ def do():
                 pp.print_person_info(pi)
 
             # Print person delimiter (for easier cutting of prints)
-            xDelim = x - (Config.spacing.xSpacing / 2.0) # x already incremented, get between cols
-            yDelim = y #- (Config.spacing.ySpacing / 2.0) # + yIncrement # we did not increment row, do it here
+            xDelim = x - (Config.spacing.xSpacing / 2.0) # get between cols
+            yDelim = y
 
             if Config.mode == PrintMode.TEXT_ONLY:
                 # Init position for printing of photos is top-left but for text it's bottom-left
