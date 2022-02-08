@@ -13,7 +13,7 @@ from datetime import date
 
 from config import PrintMode, PrintDirection, EqualizeHistMode, CardSpacing, Config
 from facedetector import FaceDetector
-from pdfprinter import PDFPrinter
+from pdfprinter import PDFPrinter, DelimiterStyle
 
 logging.basicConfig(filename='/dev/stdout/',
                     format='[%(asctime)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
@@ -165,23 +165,26 @@ def do():
                 pp.set_coordintates(xText, yText)
                 pp.print_person_info(pi)
 
+            # Print person delimiter (for easier cutting of prints)
+            xDelim = x - (Config.spacing.xSpacing / 2.0) # get between cols
+            yDelim = y
+
+            if Config.mode == PrintMode.TEXT_ONLY:
+                # Init position for printing of photos is top-left but for text it's bottom-left
+                # Get one row upper. This little hack is needed as TextBlock is hardcoded and not computed using CardSpacing + Content Spacing
+                yDelim -= (CardSpacing.rowDelta * 0.5)
+            else:
+                # In other modes, move back just part of the spacing (cannot by half because of country printed below the photo)
+                yDelim -= (Config.spacing.ySpacing * 0.2)
+
+            pp.print_delimiter(xDelim, yDelim, DelimiterStyle.FRAME)
+
             # Compute new coordinates
             x += xIncrement
-
             # Check for need to increment/decrement row
             if x < xLeftLimit or x > xRightLimit:
                 x = xInit
                 y += yIncrement
-            else:
-                # Print person delimiter (for easier cutting of prints)
-                xDelim = x - (Config.spacing.xSpacing / 2) # x already incremented, get between cols
-                yDelim = y + yIncrement - (Config.spacing.ySpacing / 3) # we did not increment row, do it here and get between the two
-
-                if Config.mode == PrintMode.TEXT_ONLY:
-                    # Init position for printing of photos is top-left but for text it's bottom-right
-                    yDelim -= CardSpacing.rowDelta
-
-                pp.print_delimiter(xDelim, yDelim, xDelim - Config.spacing.xIncrement, yDelim - Config.spacing.yIncrement)
 
             # Check if a new page should be added
             if y < yTopLimit or y > yBottomLimit:

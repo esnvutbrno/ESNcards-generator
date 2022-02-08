@@ -1,9 +1,18 @@
 import os
+from enum import Enum
 from fpdf import FPDF, set_global
 
-from config import PhotoSize, PrintMode, TextDeltas, CardSpacing, ContentSpacing, TextSize
+from config import PhotoSize, TextDeltas, CardSpacing, Config
 
 set_global("SYSTEM_TTFONTS", os.path.join(os.path.dirname(__file__), 'fonts'))
+
+
+class DelimiterStyle(Enum):
+    CROSS = 'cross'
+    FRAME = 'frame'
+
+    def __str__(self):
+        return self.value
 
 
 class PDFPrinter:
@@ -73,26 +82,33 @@ class PDFPrinter:
                       y + TextDeltas.yValidity,
                       pi.validity.strftime("%y"))  # year
 
-    def print_delimiter(self, x, y, x1, y1):
-        if (0 == 1):
-            delimX1 = x - ContentSpacing.xSpacing / 3
-            delimX2 = x + ContentSpacing.xSpacing / 3
-    
-            delimY1 = y - ContentSpacing.ySpacing / 3
-            delimY2 = y + ContentSpacing.ySpacing / 3
+    def __print_cross(self, x, y):
+        delimX1 = x - Config.spacing.xSpacing / 3.0
+        delimX2 = x + Config.spacing.xSpacing / 3.0
 
-            self.pdf.line(delimX1, y, delimX2, y)
-            self.pdf.line(x, delimY1, x, delimY2)
-        else:        
-            self.pdf.dashed_line(x,
-                                y,
-                                x1,
-                                y)
+        delimY1 = y - Config.spacing.ySpacing / 3.0
+        delimY2 = y + Config.spacing.ySpacing / 3.0
 
-            self.pdf.dashed_line(x,
-                                y,
-                                x,
-                                y1)
+        self.pdf.line(delimX1, y, delimX2, y)
+        self.pdf.line(x, delimY1, x, delimY2)
+
+    def __print_frame(self, x, y):
+        """ We rely on coordinates being top-left. Disgusting, I know..."""
+        # Add abs() value so it always goes down-right direction no matter what printing direction is set
+        delimX1 = x + abs(Config.spacing.xIncrement)
+        delimY1 = y + abs(Config.spacing.yIncrement)
+
+        self.pdf.dashed_line(delimX1, y, x, y)
+        self.pdf.dashed_line(x, delimY1, x, y)
+
+    def print_delimiter(self, x, y, style):
+        if not isinstance(style, DelimiterStyle):
+            raise TypeError("Wrong delimiter style!")
+
+        if style == DelimiterStyle.CROSS:
+            self.__print_cross(x, y)
+        elif style == DelimiterStyle.FRAME:
+            self.__print_frame(x, y)
 
     def output(self):
         self.pdf.output(self.path, "F")
