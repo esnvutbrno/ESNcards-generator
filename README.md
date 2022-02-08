@@ -1,6 +1,6 @@
 # ESNcards generator
 
-This tools serves help for ESN members to mass produce ESNcards, it gets input data rom `.csv` file downloaded from Application Google Form, downloads uploaded photos of applications, and generated `.pdf` as print resources. 
+This tools serves help for ESN members to mass produce ESNcards, it gets input data from `.csv` file downloaded from Application Google Form, downloads uploaded photos of applications, and generates `.pdf` as print resources. 
 
 ## How to produce cards
 ### Installation
@@ -82,6 +82,7 @@ To render just photos to print, output is `output-photo.pdf`:
 * [Joe Kolář](https://github.com/thejoeejoee)
 
 ## Sample outputs
-![all-1](https://user-images.githubusercontent.com/6154740/152674928-3744ecf1-4a56-4f1a-99db-28e2953994c5.png)
-![photo-1](https://user-images.githubusercontent.com/6154740/152674929-ab546157-d1ab-4baf-9858-94103248eff3.png)
-![text-1](https://user-images.githubusercontent.com/6154740/152674930-d3a78bac-27a1-40c9-8899-6143c0208622.png)
+
+![all-1](https://user-images.githubusercontent.com/6154740/153076972-c37f52de-cd6a-4b7f-a978-19f92f68c1d0.png)
+![photo-1](https://user-images.githubusercontent.com/6154740/153076979-541d7e68-5330-43c3-9e46-b239153d04d4.png)
+![text-1](https://user-images.githubusercontent.com/6154740/153076981-f09c691d-9944-4cb4-8804-a5072b7aff59.png)
