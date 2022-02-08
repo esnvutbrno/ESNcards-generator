@@ -4,7 +4,7 @@ This tools serves help for ESN members to mass produce ESNcards, it gets input d
 
 ## How to produce cards
 ### Installation
-Install all requirements into your python3 enviroment -- all listed in `requirements.txt`.
+Install all requirements into your python3 environment -- all listed in `requirements.txt`.
 
 ### Download data from gForm
 Download form responses in .csv format, expected headers:
@@ -83,6 +83,9 @@ To render just photos to print, output is `output-photo.pdf`:
 
 ## Sample outputs
 
+### Output of complete cards, used for debugging and photo checking
 ![all-1](https://user-images.githubusercontent.com/6154740/153076972-c37f52de-cd6a-4b7f-a978-19f92f68c1d0.png)
+### Output of photos, printed on white paper/photopaper
 ![photo-1](https://user-images.githubusercontent.com/6154740/153076979-541d7e68-5330-43c3-9e46-b239153d04d4.png)
+### Output of labels, printed on transparent foil
 ![text-1](https://user-images.githubusercontent.com/6154740/153076981-f09c691d-9944-4cb4-8804-a5072b7aff59.png)
